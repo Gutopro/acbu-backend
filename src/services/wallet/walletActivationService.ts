@@ -1,6 +1,7 @@
 /**
  * Send minimum XLM to user's Stellar address to activate the wallet (create account on-chain).
  * Called when user has paid KYC fee; platform Stellar wallet is the source.
+ * using pi instead of xlm
  */
 import { Operation, TransactionBuilder } from 'stellar-sdk';
 import { config } from '../../config/env';

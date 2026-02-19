@@ -54,7 +54,7 @@ export async function unlockApp(params: UnlockAppParams): Promise<UnlockAppResul
   }
 
   const apiKey = await generateApiKey(user.id, []);
-  logger.info('Recovery: app unlocked, new API key issued', { userId: user.id });
+  logger.info('Recovery: app unlocked, new key issued', { userId: user.id });
   return {
     api_key: apiKey,
     user_id: user.id,
