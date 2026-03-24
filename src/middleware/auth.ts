@@ -5,6 +5,7 @@ import { AppError } from "./errorHandler";
 import { logger } from "../config/logger";
 
 export type Audience = "retail" | "business" | "government";
+export type UserTier = "free" | "verified" | "sme" | "enterprise";
 const API_KEY_PREFIX = "acbu";
 const API_KEY_LOOKUP_LENGTH = 12;
 const API_KEY_SECRET_LENGTH = 64;
@@ -23,6 +24,8 @@ export interface AuthRequest extends Request {
   };
   /** Set by audience-specific routes (e.g. /retail, /business, /government) for limits and behaviour. */
   audience?: Audience;
+  /** Optional user tier populated by upstream middleware/services for authorization checks. */
+  userTier?: UserTier;
 }
 
 function parseApiKey(
@@ -61,52 +64,41 @@ export const validateApiKey = async (
       throw new AppError("Invalid API key format", 401);
     }
 
-    // Deterministic indexed lookup first, then single bcrypt verification.
-    const hashedCandidate = await prisma.apiKey.findFirst({
+    // Deterministic indexed lookup first.
+    const apiKeyRecord = await prisma.apiKey.findFirst({
       where: {
         lookupKey: parsedApiKey.lookupKey,
-    // Fetch active keys and compare against their stored bcrypt hashes.
-    const candidateApiKeys = await prisma.apiKey.findMany({
-      where: {
         revokedAt: null,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
-      select: {
-        id: true,
-        keyHash: true,
-      },
-    });
-
-    if (!hashedCandidate) {
-      throw new AppError("Invalid API key", 401);
-    }
-
-    const isValid = await bcrypt.compare(
-      parsedApiKey.secret,
-      hashedCandidate.keyHash,
-    );
-    if (!isValid) {
-    let apiKeyRecord = null;
-    for (const candidateKey of candidateApiKeys) {
-      if (await bcrypt.compare(apiKey, candidateKey.keyHash)) {
-        apiKeyRecord = candidateKey;
-        break;
-      }
-    }
-
-    if (!apiKeyRecord) {
-      throw new AppError("Invalid API key", 401);
-    }
-
-    // Load API-key context only after successful hash verification.
-    const apiKeyRecord = await prisma.apiKey.update({
-      where: { id: hashedCandidate.id },
-      data: { lastUsedAt: new Date() },
       include: {
         user: true,
         organization: true,
       },
     });
+
+    if (!apiKeyRecord) {
+      throw new AppError("Invalid API key", 401);
+    }
+
+    // Single bcrypt verification.
+    const isValid = await bcrypt.compare(
+      parsedApiKey.secret,
+      apiKeyRecord.keyHash,
+    );
+    if (!isValid) {
+      throw new AppError("Invalid API key", 401);
+    }
+
+    // Update lastUsedAt asynchronously (don't block request)
+    prisma.apiKey
+      .update({
+        where: { id: apiKeyRecord.id },
+        data: { lastUsedAt: new Date() },
+      })
+      .catch((e: any) =>
+        logger.error("Failed to update API key lastUsedAt", { e }),
+      );
 
     req.apiKey = {
       id: apiKeyRecord.id,

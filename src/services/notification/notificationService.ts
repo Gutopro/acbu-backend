@@ -27,8 +27,7 @@ export async function sendEmail(
         {
           personalizations: [{ to: [{ email: to }] }],
           from: {
-            email:
-              process.env.NOTIFICATION_FROM_EMAIL || "noreply@acbu.example.com",
+            email: cfg.emailFrom,
             name: "ACBU",
           },
           subject,

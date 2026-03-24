@@ -59,24 +59,28 @@ export async function mintFromUsdc(
     }
     const { usdc_amount, wallet_address } = parsed.data;
     const usdcNum = Number(usdc_amount);
-    if (req.audience) {
-      const paused = await isMintingPaused();
-      if (paused) {
-        res.status(503).json({
-          error: "Minting paused",
-          code: "CIRCUIT_BREAKER",
-          message:
-            "New minting is temporarily paused (reserve ratio below 102%).",
-        });
-        return;
-      }
-      await checkDepositLimits(
-        req.audience,
-        usdcNum,
-        userId,
-        req.apiKey?.organizationId ?? null,
-      );
+    // SECURITY: Always enforce circuit breaker and deposit limits
+    // Previously these checks were skipped when req.audience was undefined,
+    // allowing bypass of critical financial controls via direct /mint/usdc route
+    const paused = await isMintingPaused();
+    if (paused) {
+      res.status(503).json({
+        error: "Minting paused",
+        code: "CIRCUIT_BREAKER",
+        message:
+          "New minting is temporarily paused (reserve ratio below 102%).",
+      });
+      return;
     }
+
+    // Apply deposit limits - use retail as default if no audience is set
+    const audience = req.audience || "retail";
+    await checkDepositLimits(
+      audience,
+      usdcNum,
+      userId,
+      req.apiKey?.organizationId ?? null,
+    );
     const swap = await prisma.onRampSwap.create({
       data: {
         userId,
@@ -191,25 +195,29 @@ export async function depositFromBasketCurrency(
       return;
     }
     const amountNum = Number(amount);
-    if (req.audience) {
-      const paused = await isMintingPaused();
-      if (paused) {
-        res.status(503).json({
-          error: "Minting paused",
-          code: "CIRCUIT_BREAKER",
-          message:
-            "New minting is temporarily paused (reserve ratio below 102%).",
-        });
-        return;
-      }
-      const amountUsdPlaceholder = amountNum; // TODO: convert via rate to USD for accurate limit
-      await checkDepositLimits(
-        req.audience,
-        amountUsdPlaceholder,
-        req.apiKey?.userId ?? null,
-        req.apiKey?.organizationId ?? null,
-      );
+    // SECURITY: Always enforce circuit breaker and deposit limits
+    // Previously these checks were skipped when req.audience was undefined,
+    // allowing bypass of critical financial controls via direct /mint/deposit route
+    const paused = await isMintingPaused();
+    if (paused) {
+      res.status(503).json({
+        error: "Minting paused",
+        code: "CIRCUIT_BREAKER",
+        message:
+          "New minting is temporarily paused (reserve ratio below 102%).",
+      });
+      return;
     }
+
+    // Apply deposit limits - use retail as default if no audience is set
+    const audience = req.audience || "retail";
+    const amountUsdPlaceholder = amountNum; // TODO: convert via rate to USD for accurate limit
+    await checkDepositLimits(
+      audience,
+      amountUsdPlaceholder,
+      req.apiKey?.userId ?? null,
+      req.apiKey?.organizationId ?? null,
+    );
     const tx = await prisma.transaction.create({
       data: {
         userId: req.apiKey?.userId ?? undefined,
