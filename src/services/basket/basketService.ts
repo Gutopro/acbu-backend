@@ -3,8 +3,8 @@
  * Weights come from stats + DAO (BasketConfig), not hardcoded.
  * Fallback: if no active BasketConfig (e.g. before seed), uses DEFAULT_BASKET from config for seed compatibility.
  */
-import { prisma } from '../../config/database';
-import { BASKET_CURRENCIES, BASKET_WEIGHTS } from '../../config/basket';
+import { prisma } from "../../config/database";
+import { BASKET_CURRENCIES, BASKET_WEIGHTS } from "../../config/basket";
 
 export interface BasketEntry {
   currency: string;
@@ -26,8 +26,8 @@ export class BasketService {
    */
   async getCurrentBasket(): Promise<BasketEntry[]> {
     const rows = await prisma.basketConfig.findMany({
-      where: { status: 'active' },
-      orderBy: { effectiveFrom: 'desc' },
+      where: { status: "active" },
+      orderBy: { effectiveFrom: "desc" },
     });
 
     if (rows.length === 0) {
@@ -36,12 +36,13 @@ export class BasketService {
 
     const latestEffectiveFrom = rows[0].effectiveFrom;
     const currentRows = rows.filter(
-      (r: (typeof rows)[0]) => r.effectiveFrom.getTime() === latestEffectiveFrom.getTime()
+      (r: (typeof rows)[0]) =>
+        r.effectiveFrom.getTime() === latestEffectiveFrom.getTime(),
     );
 
     const sum = currentRows.reduce(
       (s: number, r: (typeof currentRows)[0]) => s + r.weight.toNumber(),
-      0
+      0,
     );
     const scale = sum > 0 ? 100 / sum : 1;
 
@@ -57,10 +58,10 @@ export class BasketService {
   async getBasketAsOf(date: Date): Promise<BasketEntry[]> {
     const rows = await prisma.basketConfig.findMany({
       where: {
-        status: 'active',
+        status: "active",
         effectiveFrom: { lte: date },
       },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: { effectiveFrom: "desc" },
     });
 
     if (rows.length === 0) {
@@ -69,12 +70,13 @@ export class BasketService {
 
     const latestEffectiveFrom = rows[0].effectiveFrom;
     const asOfRows = rows.filter(
-      (r: (typeof rows)[0]) => r.effectiveFrom.getTime() === latestEffectiveFrom.getTime()
+      (r: (typeof rows)[0]) =>
+        r.effectiveFrom.getTime() === latestEffectiveFrom.getTime(),
     );
 
     const sum = asOfRows.reduce(
       (s: number, r: (typeof asOfRows)[0]) => s + r.weight.toNumber(),
-      0
+      0,
     );
     const scale = sum > 0 ? 100 / sum : 1;
 

@@ -1,14 +1,14 @@
 /**
  * GET /v1/transactions/:id - Get transaction by id.
  */
-import { Response, NextFunction } from 'express';
-import { prisma } from '../config/database';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction } from "express";
+import { prisma } from "../config/database";
+import { AuthRequest } from "../middleware/auth";
 
 export async function getTransactionById(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const { id } = req.params;
@@ -16,11 +16,11 @@ export async function getTransactionById(
       where: { id },
     });
     if (!tx) {
-      res.status(404).json({ error: 'Transaction not found' });
+      res.status(404).json({ error: "Transaction not found" });
       return;
     }
     if (req.apiKey?.userId && tx.userId && tx.userId !== req.apiKey.userId) {
-      res.status(403).json({ error: 'Forbidden' });
+      res.status(403).json({ error: "Forbidden" });
       return;
     }
     res.status(200).json({

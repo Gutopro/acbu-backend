@@ -3,16 +3,16 @@
  * this job "sells" XLM (or uses equivalent value) and mints ACBU to the user.
  * Consumes XLM_TO_ACBU queue or polls OnRampSwap table for pending_convert.
  */
-import type { ConsumeMessage } from 'amqplib';
-import { connectRabbitMQ, QUEUES } from '../config/rabbitmq';
-import { logger } from '../config/logger';
-import { prisma } from '../config/database';
-import { mintFromUsdcInternal } from '../controllers/mintController';
+import type { ConsumeMessage } from "amqplib";
+import { connectRabbitMQ, QUEUES } from "../config/rabbitmq";
+import { logger } from "../config/logger";
+import { prisma } from "../config/database";
+import { mintFromUsdcInternal } from "../controllers/mintController";
 
 const QUEUE = QUEUES.XLM_TO_ACBU;
 
 /** Stub: XLM to USD rate (replace with oracle/DEX in production). */
-const XLM_USD_RATE = Number(process.env.XLM_USD_RATE ?? '0.2');
+const XLM_USD_RATE = Number(process.env.XLM_USD_RATE ?? "0.2");
 
 export interface XlmToAcbuPayload {
   onRampSwapId: string;
@@ -35,52 +35,57 @@ export async function startXlmToAcbuConsumer(): Promise<void> {
         await processXlmToAcbu(body);
         ch.ack(msg);
       } catch (e) {
-        logger.error('XLM→ACBU job failed', { error: e });
+        logger.error("XLM→ACBU job failed", { error: e });
         ch.nack(msg, false, true);
       }
     },
-    { noAck: false }
+    { noAck: false },
   );
-  logger.info('XLM→ACBU consumer started', { queue: QUEUE });
+  logger.info("XLM→ACBU consumer started", { queue: QUEUE });
 }
 
 /**
  * Process a single on-ramp swap: sell XLM (stub) and mint ACBU to user.
  */
-export async function processXlmToAcbu(payload: XlmToAcbuPayload): Promise<void> {
-  const { onRampSwapId, userId, stellarAddress, xlmAmount, usdcEquivalent } = payload;
+export async function processXlmToAcbu(
+  payload: XlmToAcbuPayload,
+): Promise<void> {
+  const { onRampSwapId, userId, stellarAddress, xlmAmount, usdcEquivalent } =
+    payload;
   const xlmNum = Number(xlmAmount);
-  const usdcAmount = usdcEquivalent ? Number(usdcEquivalent) : xlmNum * XLM_USD_RATE;
+  const usdcAmount = usdcEquivalent
+    ? Number(usdcEquivalent)
+    : xlmNum * XLM_USD_RATE;
 
   // OnRampSwap delegate; run npx prisma generate if types are missing
   const swap = await (prisma as any).onRampSwap.findUnique({
     where: { id: onRampSwapId },
   });
-  if (!swap || swap.status !== 'pending_convert') {
-    logger.warn('OnRampSwap not found or not pending', { onRampSwapId });
+  if (!swap || swap.status !== "pending_convert") {
+    logger.warn("OnRampSwap not found or not pending", { onRampSwapId });
     return;
   }
 
   await (prisma as any).onRampSwap.update({
     where: { id: onRampSwapId },
-    data: { status: 'processing' },
+    data: { status: "processing" },
   });
 
   try {
     const { transactionId, acbuAmount } = await mintFromUsdcInternal(
       usdcAmount,
       stellarAddress,
-      userId
+      userId,
     );
     await (prisma as any).onRampSwap.update({
       where: { id: onRampSwapId },
       data: {
-        status: 'completed',
+        status: "completed",
         transactionId,
         completedAt: new Date(),
       },
     });
-    logger.info('XLM→ACBU completed', {
+    logger.info("XLM→ACBU completed", {
       onRampSwapId,
       userId,
       stellarAddress,
@@ -90,9 +95,9 @@ export async function processXlmToAcbu(payload: XlmToAcbuPayload): Promise<void>
   } catch (e) {
     await (prisma as any).onRampSwap.update({
       where: { id: onRampSwapId },
-      data: { status: 'failed' },
+      data: { status: "failed" },
     });
-    logger.error('XLM→ACBU mint failed', { onRampSwapId, error: e });
+    logger.error("XLM→ACBU mint failed", { onRampSwapId, error: e });
     throw e;
   }
 }
@@ -100,11 +105,13 @@ export async function processXlmToAcbu(payload: XlmToAcbuPayload): Promise<void>
 /**
  * Enqueue an on-ramp swap for processing (call when user has swapped USDC→XLM).
  */
-export async function enqueueXlmToAcbu(payload: XlmToAcbuPayload): Promise<void> {
+export async function enqueueXlmToAcbu(
+  payload: XlmToAcbuPayload,
+): Promise<void> {
   const ch = await connectRabbitMQ();
   await ch.assertQueue(QUEUE, { durable: true });
   ch.sendToQueue(QUEUE, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
   });
-  logger.info('XLM→ACBU enqueued', { onRampSwapId: payload.onRampSwapId });
+  logger.info("XLM→ACBU enqueued", { onRampSwapId: payload.onRampSwapId });
 }

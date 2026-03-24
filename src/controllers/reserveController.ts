@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { reserveTracker } from '../services/reserve/ReserveTracker';
+import { Request, Response, NextFunction } from "express";
+import { reserveTracker } from "../services/reserve/ReserveTracker";
 
 /**
  * @swagger
@@ -31,7 +31,7 @@ import { reserveTracker } from '../services/reserve/ReserveTracker';
 export const getReserveStatus = async (
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const status = await reserveTracker.getReserveStatus();
@@ -56,11 +56,11 @@ export const getReserveStatus = async (
 export const trackReserves = async (
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     await reserveTracker.trackReserves();
-    res.json({ message: 'Reserve tracking completed' });
+    res.json({ message: "Reserve tracking completed" });
   } catch (error) {
     next(error);
   }

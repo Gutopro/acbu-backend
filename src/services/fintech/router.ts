@@ -4,20 +4,20 @@
  * Falls back to flutterwave when the mapped provider is not registered.
  */
 
-import type { FintechProvider, FintechProviderId } from './types';
+import type { FintechProvider, FintechProviderId } from "./types";
 
 /** Default currency → provider id (plan Part C). Overridable via config. */
 const DEFAULT_CURRENCY_PROVIDERS: Record<string, FintechProviderId> = {
-  NGN: 'paystack',
-  KES: 'flutterwave',
-  RWF: 'mtn_momo',
-  ZAR: 'flutterwave',
-  GHS: 'flutterwave',
-  EGP: 'flutterwave',
-  MAD: 'flutterwave',
-  TZS: 'flutterwave',
-  UGX: 'flutterwave',
-  XOF: 'flutterwave',
+  NGN: "paystack",
+  KES: "flutterwave",
+  RWF: "mtn_momo",
+  ZAR: "flutterwave",
+  GHS: "flutterwave",
+  EGP: "flutterwave",
+  MAD: "flutterwave",
+  TZS: "flutterwave",
+  UGX: "flutterwave",
+  XOF: "flutterwave",
 };
 
 export class FintechProviderRouter {
@@ -33,13 +33,13 @@ export class FintechProviderRouter {
   }
 
   getProvider(currency: string): FintechProvider {
-    const id = this.currencyProviders[currency] ?? 'flutterwave';
+    const id = this.currencyProviders[currency] ?? "flutterwave";
     const provider = this.providers.get(id);
     if (provider) return provider;
-    const fallback = this.providers.get('flutterwave');
+    const fallback = this.providers.get("flutterwave");
     if (fallback) return fallback;
     throw new Error(
-      `No fintech provider for currency ${currency}; flutterwave not registered`
+      `No fintech provider for currency ${currency}; flutterwave not registered`,
     );
   }
 
@@ -62,7 +62,7 @@ let routerInstance: FintechProviderRouter | null = null;
 export function getFintechRouter(): FintechProviderRouter {
   if (!routerInstance) {
     throw new Error(
-      'Fintech router not initialized. Import from services/fintech so providers are registered.'
+      "Fintech router not initialized. Import from services/fintech so providers are registered.",
     );
   }
   return routerInstance;

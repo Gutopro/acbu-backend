@@ -2,8 +2,8 @@
  * Deposit and withdrawal limits by audience (retail, business, government).
  * Aligned with LIMITS_AND_TIERS.MD.
  */
-import type { Audience } from '../middleware/auth';
-import { config } from './env';
+import type { Audience } from "../middleware/auth";
+import { config } from "./env";
 
 export interface LimitConfig {
   depositDailyUsd: number;
@@ -23,7 +23,9 @@ export function getLimitConfig(audience: Audience): LimitConfig {
 }
 
 /** Circuit breaker: pause single-currency withdrawal if reserve below this % of target weight. */
-export const CIRCUIT_BREAKER_RESERVE_WEIGHT_THRESHOLD_PCT = config.limits.circuitBreaker.reserveWeightThresholdPct;
+export const CIRCUIT_BREAKER_RESERVE_WEIGHT_THRESHOLD_PCT =
+  config.limits.circuitBreaker.reserveWeightThresholdPct;
 
 /** Pause new minting if total reserve ratio below this (e.g. 1.02 = 102%). */
-export const CIRCUIT_BREAKER_MIN_RESERVE_RATIO = config.limits.circuitBreaker.minReserveRatio;
+export const CIRCUIT_BREAKER_MIN_RESERVE_RATIO =
+  config.limits.circuitBreaker.minReserveRatio;

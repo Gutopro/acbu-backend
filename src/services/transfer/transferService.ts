@@ -2,18 +2,22 @@
  * Transfer service: resolve alias to stellarAddress, create Transaction, optionally submit Stellar payment.
  * Uses direct wallets (G...). When getSenderSigningKey is provided, signs and submits; otherwise leaves pending.
  */
-import { Operation, Asset, Keypair, TransactionBuilder } from 'stellar-sdk';
-import { prisma } from '../../config/database';
-import { stellarClient } from '../stellar/client';
-import { resolveRecipientToStellarAddress } from '../recipient/recipientResolver';
-import { logger } from '../../config/logger';
-import type { CreateTransferParams, CreateTransferOptions, CreateTransferResult } from './types';
+import { Operation, Asset, Keypair, TransactionBuilder } from "stellar-sdk";
+import { prisma } from "../../config/database";
+import { stellarClient } from "../stellar/client";
+import { resolveRecipientToStellarAddress } from "../recipient/recipientResolver";
+import { logger } from "../../config/logger";
+import type {
+  CreateTransferParams,
+  CreateTransferOptions,
+  CreateTransferResult,
+} from "./types";
 
 /** ACBU asset: use native when issuer not configured. Set STELLAR_ACBU_ASSET_ISSUER for custom asset. */
 function getAcbuAsset(): Asset {
   const issuer = process.env.STELLAR_ACBU_ASSET_ISSUER;
   if (issuer) {
-    return new Asset('ACBU', issuer);
+    return new Asset("ACBU", issuer);
   }
   return Asset.native();
 }
@@ -25,7 +29,7 @@ async function submitStellarPayment(
   sourceSecretKey: string,
   destinationAddress: string,
   amountAcbu: string,
-  asset: Asset
+  asset: Asset,
 ): Promise<string> {
   const keypair = Keypair.fromSecret(sourceSecretKey);
   const sourceAccountId = keypair.publicKey();
@@ -38,7 +42,7 @@ async function submitStellarPayment(
     amount: amountAcbu,
   });
   const builder = new TransactionBuilder(sourceAccount, {
-    fee: '100',
+    fee: "100",
     networkPassphrase,
   }).addOperation(op);
   const transaction = builder.build();
@@ -53,17 +57,20 @@ async function submitStellarPayment(
  */
 export async function createTransfer(
   params: CreateTransferParams,
-  options?: CreateTransferOptions
+  options?: CreateTransferOptions,
 ): Promise<CreateTransferResult> {
   const { senderUserId, to } = params;
   const amount = params.amountAcbu.trim();
   if (!amount || Number(amount) <= 0) {
-    throw new Error('amount_acbu must be a positive number');
+    throw new Error("amount_acbu must be a positive number");
   }
 
-  const recipientAddress = await resolveRecipientToStellarAddress(to, senderUserId);
+  const recipientAddress = await resolveRecipientToStellarAddress(
+    to,
+    senderUserId,
+  );
   if (!recipientAddress) {
-    throw new Error('Recipient not found or not available');
+    throw new Error("Recipient not found or not available");
   }
 
   const sender = await prisma.user.findUnique({
@@ -71,23 +78,25 @@ export async function createTransfer(
     select: { stellarAddress: true, kycStatus: true },
   });
   if (!sender) {
-    throw new Error('Sender user not found');
+    throw new Error("Sender user not found");
   }
-  if (sender.kycStatus !== 'verified') {
-    throw new Error('KYC required to make payments. Complete verification first.');
+  if (sender.kycStatus !== "verified") {
+    throw new Error(
+      "KYC required to make payments. Complete verification first.",
+    );
   }
 
   const tx = await prisma.transaction.create({
     data: {
       userId: senderUserId,
-      type: 'transfer',
-      status: 'pending',
+      type: "transfer",
+      status: "pending",
       recipientAddress,
       acbuAmount: amount,
     },
   });
 
-  let status = 'pending';
+  let status = "pending";
   let blockchainTxHash: string | null = null;
 
   const getKey = options?.getSenderSigningKey;
@@ -100,32 +109,32 @@ export async function createTransfer(
           secretKey,
           recipientAddress,
           amount,
-          asset
+          asset,
         );
-        status = 'completed';
+        status = "completed";
         await prisma.transaction.update({
           where: { id: tx.id },
           data: {
-            status: 'completed',
+            status: "completed",
             blockchainTxHash,
             completedAt: new Date(),
           },
         });
-        logger.info('Transfer completed', {
+        logger.info("Transfer completed", {
           transactionId: tx.id,
           blockchainTxHash,
           senderUserId,
         });
       } catch (err) {
-        logger.error('Transfer Stellar submission failed', {
+        logger.error("Transfer Stellar submission failed", {
           transactionId: tx.id,
           senderUserId,
           error: err,
         });
-        status = 'failed';
+        status = "failed";
         await prisma.transaction.update({
           where: { id: tx.id },
-          data: { status: 'failed' },
+          data: { status: "failed" },
         });
       }
     }

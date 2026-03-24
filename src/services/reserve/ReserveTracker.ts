@@ -1,13 +1,13 @@
-import { prisma } from '../../config/database';
-import { config } from '../../config/env';
-import { getContractAddresses } from '../../config/contracts';
-import { logger } from '../../config/logger';
-import { getFintechRouter } from '../fintech';
-import { acbuReserveTrackerService } from '../contracts';
-import { basketService } from '../basket';
-import { getRabbitMQChannel } from '../../config/rabbitmq';
-import { QUEUES } from '../../config/rabbitmq';
-import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from "../../config/database";
+import { config } from "../../config/env";
+import { getContractAddresses } from "../../config/contracts";
+import { logger } from "../../config/logger";
+import { getFintechRouter } from "../fintech";
+import { acbuReserveTrackerService } from "../contracts";
+import { basketService } from "../basket";
+import { getRabbitMQChannel } from "../../config/rabbitmq";
+import { QUEUES } from "../../config/rabbitmq";
+import { Decimal } from "@prisma/client/runtime/library";
 
 /** Contract uses 7 decimals (10^7) for reserve amount and value_usd */
 const RESERVE_DECIMALS = 1e7;
@@ -22,7 +22,10 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
       return await fn();
     } catch (e) {
       lastError = e;
-      logger.warn(`${label} attempt ${attempt}/${RESERVE_TRACKER_RETRIES} failed`, { error: e });
+      logger.warn(
+        `${label} attempt ${attempt}/${RESERVE_TRACKER_RETRIES} failed`,
+        { error: e },
+      );
       if (attempt < RESERVE_TRACKER_RETRIES) {
         await new Promise((r) => setTimeout(r, RESERVE_TRACKER_RETRY_DELAY_MS));
       }
@@ -48,7 +51,7 @@ export interface ReserveHealth {
   totalAcbuSupply: number;
   totalReserveValueUsd: number;
   overcollateralizationRatio: number;
-  health: 'healthy' | 'warning' | 'critical';
+  health: "healthy" | "warning" | "critical";
   currencies: ReserveStatus[];
 }
 
@@ -58,7 +61,7 @@ export class ReserveTracker {
    */
   async trackReserves(): Promise<void> {
     try {
-      logger.info('Starting reserve tracking');
+      logger.info("Starting reserve tracking");
 
       const basket = await basketService.getCurrentBasket();
       const currencies = basket.map((e) => e.currency);
@@ -69,22 +72,25 @@ export class ReserveTracker {
         try {
           const balance = await withRetry(
             () => fintechRouter.getProvider(currency).getBalance(currency),
-            `getBalance(${currency})`
+            `getBalance(${currency})`,
           );
           const rate = await withRetry(
             () => this.getCurrencyRate(currency),
-            `getCurrencyRate(${currency})`
+            `getCurrencyRate(${currency})`,
           );
           const reserveValueUsd = balance * rate;
           const targetWeight = await basketService.getTargetWeight(currency);
           const totalReserveValue = await this.getTotalReserveValue();
-          const actualWeight = totalReserveValue > 0 ? (reserveValueUsd / totalReserveValue) * 100 : 0;
+          const actualWeight =
+            totalReserveValue > 0
+              ? (reserveValueUsd / totalReserveValue) * 100
+              : 0;
 
           // Store reserve snapshot (off-chain) for transactions segment
           await prisma.reserve.create({
             data: {
               currency,
-              segment: 'transactions',
+              segment: "transactions",
               targetWeight: new Decimal(targetWeight),
               actualWeight: new Decimal(actualWeight),
               reserveAmount: new Decimal(balance),
@@ -101,12 +107,15 @@ export class ReserveTracker {
                 amount: toReserveUnits(balance),
                 valueUsd: toReserveUnits(reserveValueUsd),
               });
-              logger.info('Reserve synced to chain', { currency, txHash });
+              logger.info("Reserve synced to chain", { currency, txHash });
             } catch (onChainError) {
-              logger.warn('On-chain reserve update failed (off-chain data saved)', {
-                currency,
-                error: onChainError,
-              });
+              logger.warn(
+                "On-chain reserve update failed (off-chain data saved)",
+                {
+                  currency,
+                  error: onChainError,
+                },
+              );
             }
           }
 
@@ -118,34 +127,44 @@ export class ReserveTracker {
             targetWeight,
           });
 
-          logger.info('Reserve tracked', { currency, balance, reserveValueUsd, actualWeight });
+          logger.info("Reserve tracked", {
+            currency,
+            balance,
+            reserveValueUsd,
+            actualWeight,
+          });
         } catch (error) {
-          logger.error('Failed to track reserve for currency', { currency, error });
+          logger.error("Failed to track reserve for currency", {
+            currency,
+            error,
+          });
         }
       }
 
       // Check reserve health
       const health = await this.checkReserveHealth();
-      if (health.health === 'critical') {
+      if (health.health === "critical") {
         await this.triggerAlert(health);
       }
 
-      logger.info('Reserve tracking completed', { reserveUpdates });
+      logger.info("Reserve tracking completed", { reserveUpdates });
     } catch (error) {
-      logger.error('Reserve tracking failed', error);
+      logger.error("Reserve tracking failed", error);
       throw error;
     }
   }
 
   /** Reserve segment: transactions (mint/burn liquidity) or investment_savings */
-  static readonly SEGMENT_TRANSACTIONS = 'transactions' as const;
-  static readonly SEGMENT_INVESTMENT_SAVINGS = 'investment_savings' as const;
+  static readonly SEGMENT_TRANSACTIONS = "transactions" as const;
+  static readonly SEGMENT_INVESTMENT_SAVINGS = "investment_savings" as const;
 
   /**
    * Get current reserve status (default: transactions segment only for health).
    * Use getReserveStatusBySegment to get investment_savings or both.
    */
-  async getReserveStatus(segment: string = ReserveTracker.SEGMENT_TRANSACTIONS): Promise<ReserveHealth> {
+  async getReserveStatus(
+    segment: string = ReserveTracker.SEGMENT_TRANSACTIONS,
+  ): Promise<ReserveHealth> {
     const totalAcbuSupply = await this.getTotalAcbuSupply();
     const totalReserveValue = await this.getTotalReserveValue(segment);
     const overcollateralizationRatio =
@@ -157,7 +176,7 @@ export class ReserveTracker {
     for (const currency of currencies) {
       const latestReserve = await prisma.reserve.findFirst({
         where: { currency, segment },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { timestamp: "desc" },
       });
 
       if (latestReserve) {
@@ -167,17 +186,19 @@ export class ReserveTracker {
           actualWeight: latestReserve.actualWeight.toNumber(),
           reserveAmount: latestReserve.reserveAmount.toNumber(),
           reserveValueUsd: latestReserve.reserveValueUsd.toNumber(),
-          weightDrift: latestReserve.actualWeight.toNumber() - latestReserve.targetWeight.toNumber(),
+          weightDrift:
+            latestReserve.actualWeight.toNumber() -
+            latestReserve.targetWeight.toNumber(),
         });
       }
     }
 
-    const health: 'healthy' | 'warning' | 'critical' =
+    const health: "healthy" | "warning" | "critical" =
       overcollateralizationRatio >= config.reserve.targetRatio * 100
-        ? 'healthy'
+        ? "healthy"
         : overcollateralizationRatio >= config.reserve.alertThreshold * 100
-          ? 'warning'
-          : 'critical';
+          ? "warning"
+          : "critical";
 
     return {
       totalAcbuSupply,
@@ -191,7 +212,9 @@ export class ReserveTracker {
   /**
    * Calculate reserve ratio (default: transactions segment).
    */
-  async calculateReserveRatio(segment: string = ReserveTracker.SEGMENT_TRANSACTIONS): Promise<number> {
+  async calculateReserveRatio(
+    segment: string = ReserveTracker.SEGMENT_TRANSACTIONS,
+  ): Promise<number> {
     const totalAcbuSupply = await this.getTotalAcbuSupply();
     const totalReserveValue = await this.getTotalReserveValue(segment);
 
@@ -210,9 +233,15 @@ export class ReserveTracker {
     const ratio = status.overcollateralizationRatio / 100;
 
     if (ratio < config.reserve.alertThreshold) {
-      logger.warn('Reserve health critical', { ratio, threshold: config.reserve.alertThreshold });
+      logger.warn("Reserve health critical", {
+        ratio,
+        threshold: config.reserve.alertThreshold,
+      });
     } else if (ratio < config.reserve.minRatio) {
-      logger.warn('Reserve health warning', { ratio, minRatio: config.reserve.minRatio });
+      logger.warn("Reserve health warning", {
+        ratio,
+        minRatio: config.reserve.minRatio,
+      });
     }
 
     return status;
@@ -222,7 +251,7 @@ export class ReserveTracker {
    * Trigger alert when reserves are low: log and publish to NOTIFICATIONS queue for email/Slack/PagerDuty.
    */
   private async triggerAlert(health: ReserveHealth): Promise<void> {
-    logger.error('Reserve alert triggered', {
+    logger.error("Reserve alert triggered", {
       totalAcbuSupply: health.totalAcbuSupply,
       totalReserveValueUsd: health.totalReserveValueUsd,
       overcollateralizationRatio: health.overcollateralizationRatio,
@@ -235,18 +264,18 @@ export class ReserveTracker {
         QUEUES.NOTIFICATIONS,
         Buffer.from(
           JSON.stringify({
-            type: 'reserve_alert',
+            type: "reserve_alert",
             health: health.health,
             totalAcbuSupply: health.totalAcbuSupply,
             totalReserveValueUsd: health.totalReserveValueUsd,
             overcollateralizationRatio: health.overcollateralizationRatio,
             timestamp: new Date().toISOString(),
-          })
+          }),
         ),
-        { persistent: true }
+        { persistent: true },
       );
     } catch (e) {
-      logger.error('Failed to publish reserve alert to NOTIFICATIONS queue', e);
+      logger.error("Failed to publish reserve alert to NOTIFICATIONS queue", e);
     }
   }
 
@@ -257,12 +286,12 @@ export class ReserveTracker {
     // TODO: Implement blockchain query to get total ACBU supply
     // For now, calculate from transactions
     const minted = await prisma.transaction.aggregate({
-      where: { type: 'mint', status: 'completed' },
+      where: { type: "mint", status: "completed" },
       _sum: { acbuAmount: true },
     });
 
     const burned = await prisma.transaction.aggregate({
-      where: { type: 'burn', status: 'completed' },
+      where: { type: "burn", status: "completed" },
       _sum: { acbuAmountBurned: true },
     });
 
@@ -275,14 +304,16 @@ export class ReserveTracker {
   /**
    * Get total reserve value in USD for a segment (default: transactions).
    */
-  private async getTotalReserveValue(segment: string = ReserveTracker.SEGMENT_TRANSACTIONS): Promise<number> {
+  private async getTotalReserveValue(
+    segment: string = ReserveTracker.SEGMENT_TRANSACTIONS,
+  ): Promise<number> {
     const currencies = await basketService.getCurrencies();
     let total = 0;
 
     for (const currency of currencies) {
       const latest = await prisma.reserve.findFirst({
         where: { currency, segment },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { timestamp: "desc" },
       });
 
       if (latest) {
@@ -299,7 +330,7 @@ export class ReserveTracker {
   private async getCurrencyRate(currency: string): Promise<number> {
     const latestRate = await prisma.oracleRate.findFirst({
       where: { currency },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
 
     if (latestRate) {
@@ -309,15 +340,14 @@ export class ReserveTracker {
     // Fallback: use Flutterwave for FX (broad coverage) when oracle rate not available
     try {
       const conversion = await getFintechRouter()
-        .getProviderById('flutterwave')
-        .convertCurrency(1, currency, 'USD');
+        .getProviderById("flutterwave")
+        .convertCurrency(1, currency, "USD");
       return conversion.rate;
     } catch (error) {
-      logger.error('Failed to get currency rate', { currency, error });
+      logger.error("Failed to get currency rate", { currency, error });
       throw new Error(`Unable to get rate for ${currency}`);
     }
   }
-
 }
 
 export const reserveTracker = new ReserveTracker();

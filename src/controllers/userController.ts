@@ -1,28 +1,34 @@
-import crypto from 'crypto';
-import { Response, NextFunction } from 'express';
-import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import { Keypair } from 'stellar-sdk';
-import { AuthRequest } from '../middleware/auth';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/errorHandler';
+import crypto from "crypto";
+import { Response, NextFunction } from "express";
+import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { Keypair } from "stellar-sdk";
+import { AuthRequest } from "../middleware/auth";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/errorHandler";
 
-const WALLET_ENC_SALT_PREFIX = 'acbu-wallet-v1:';
+const WALLET_ENC_SALT_PREFIX = "acbu-wallet-v1:";
 const WALLET_ENC_KEYLEN = 32;
 const WALLET_ENC_IVLEN = 12;
-const WALLET_ENC_ALGO = 'aes-256-gcm';
+const WALLET_ENC_ALGO = "aes-256-gcm";
 
 /** Normalize username: lowercase, no spaces. */
 function normalizeUsername(s: string): string {
-  return s.trim().toLowerCase().replace(/\s/g, '');
+  return s.trim().toLowerCase().replace(/\s/g, "");
 }
 
 const patchMeSchema = z.object({
   username: z.string().min(1).max(64).transform(normalizeUsername).optional(),
-  email: z.string().email().max(255).transform((s) => s.trim().toLowerCase()).optional().nullable(),
+  email: z
+    .string()
+    .email()
+    .max(255)
+    .transform((s) => s.trim().toLowerCase())
+    .optional()
+    .nullable(),
   phone_e164: z
     .string()
-    .regex(/^\+[0-9]{10,15}$/, 'Must be E.164 (e.g. +2348012345678)')
+    .regex(/^\+[0-9]{10,15}$/, "Must be E.164 (e.g. +2348012345678)")
     .optional()
     .nullable(),
   privacy_hide_from_search: z.boolean().optional(),
@@ -33,11 +39,15 @@ const patchMeSchema = z.object({
  * GET /users/me
  * Current user profile. No stellarAddress in response.
  */
-export async function getMe(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+export async function getMe(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -55,7 +65,7 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
       },
     });
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
     res.json({
       user_id: user.id,
@@ -78,11 +88,15 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
  * PATCH /users/me
  * Update username, email, phone_e164, privacy_hide_from_search.
  */
-export async function patchMe(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+export async function patchMe(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
     const body = patchMeSchema.parse(req.body);
     const data: {
@@ -130,7 +144,7 @@ export async function patchMe(req: AuthRequest, res: Response, next: NextFunctio
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      const msg = e.errors.map((x) => x.message).join('; ');
+      const msg = e.errors.map((x) => x.message).join("; ");
       return next(new AppError(msg, 400));
     }
     next(e);
@@ -148,14 +162,14 @@ const addContactSchema = z.object({
 export async function postContacts(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const body = addContactSchema.parse(req.body);
     if (body.contact_user_id === userId) {
-      throw new AppError('Cannot add self as contact', 400);
+      throw new AppError("Cannot add self as contact", 400);
     }
     const contact = await prisma.userContact.upsert({
       where: {
@@ -174,7 +188,8 @@ export async function postContacts(
       created_at: contact.createdAt.toISOString(),
     });
   } catch (e) {
-    if (e instanceof z.ZodError) return next(new AppError(e.errors.map((x) => x.message).join('; '), 400));
+    if (e instanceof z.ZodError)
+      return next(new AppError(e.errors.map((x) => x.message).join("; "), 400));
     next(e);
   }
 }
@@ -186,11 +201,11 @@ export async function postContacts(
 export async function getContacts(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const contacts = await prisma.userContact.findMany({
       where: { userId, contactUserId: { not: null } },
       select: {
@@ -220,17 +235,17 @@ export async function getContacts(
 export async function deleteContact(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const { id } = req.params;
     const contact = await prisma.userContact.findFirst({
       where: { id, userId },
       select: { id: true },
     });
-    if (!contact) throw new AppError('Contact not found', 404);
+    if (!contact) throw new AppError("Contact not found", 404);
     await prisma.userContact.delete({ where: { id: contact.id } });
     res.status(204).send();
   } catch (e) {
@@ -242,10 +257,14 @@ const addGuardianSchema = z
   .object({
     guardian_user_id: z.string().uuid().optional(),
     guardian_email: z.string().email().max(255).optional(),
-    guardian_phone: z.string().regex(/^\+[0-9]{10,15}$/, 'Must be E.164').optional(),
+    guardian_phone: z
+      .string()
+      .regex(/^\+[0-9]{10,15}$/, "Must be E.164")
+      .optional(),
   })
   .refine((d) => d.guardian_user_id ?? d.guardian_email ?? d.guardian_phone, {
-    message: 'Provide at least one of guardian_user_id, guardian_email, guardian_phone',
+    message:
+      "Provide at least one of guardian_user_id, guardian_email, guardian_phone",
   });
 
 /**
@@ -255,30 +274,46 @@ const addGuardianSchema = z
 export async function postGuardians(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const body = addGuardianSchema.parse(req.body);
-    const orConditions: { guardianUserId?: string; guardianEmail?: string; guardianPhone?: string }[] = [];
-    if (body.guardian_user_id) orConditions.push({ guardianUserId: body.guardian_user_id });
-    if (body.guardian_email) orConditions.push({ guardianEmail: body.guardian_email.trim().toLowerCase() });
-    if (body.guardian_phone) orConditions.push({ guardianPhone: body.guardian_phone });
+    const orConditions: {
+      guardianUserId?: string;
+      guardianEmail?: string;
+      guardianPhone?: string;
+    }[] = [];
+    if (body.guardian_user_id)
+      orConditions.push({ guardianUserId: body.guardian_user_id });
+    if (body.guardian_email)
+      orConditions.push({
+        guardianEmail: body.guardian_email.trim().toLowerCase(),
+      });
+    if (body.guardian_phone)
+      orConditions.push({ guardianPhone: body.guardian_phone });
     const existing = await prisma.guardian.findFirst({
       where: { userId, OR: orConditions },
       select: { id: true },
     });
-    if (existing) throw new AppError('Guardian already added', 409);
+    if (existing) throw new AppError("Guardian already added", 409);
     const guardian = await prisma.guardian.create({
       data: {
         userId,
         guardianUserId: body.guardian_user_id ?? undefined,
         guardianEmail: body.guardian_email?.trim().toLowerCase() ?? undefined,
         guardianPhone: body.guardian_phone ?? undefined,
-        status: 'pending',
+        status: "pending",
       },
-      select: { id: true, guardianUserId: true, guardianEmail: true, guardianPhone: true, status: true, invitedAt: true },
+      select: {
+        id: true,
+        guardianUserId: true,
+        guardianEmail: true,
+        guardianPhone: true,
+        status: true,
+        invitedAt: true,
+      },
     });
     res.status(201).json({
       guardian_id: guardian.id,
@@ -289,7 +324,8 @@ export async function postGuardians(
       invited_at: guardian.invitedAt.toISOString(),
     });
   } catch (e) {
-    if (e instanceof z.ZodError) return next(new AppError(e.errors.map((x) => x.message).join('; '), 400));
+    if (e instanceof z.ZodError)
+      return next(new AppError(e.errors.map((x) => x.message).join("; "), 400));
     next(e);
   }
 }
@@ -301,11 +337,11 @@ export async function postGuardians(
 export async function getGuardians(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const guardians = await prisma.guardian.findMany({
       where: { userId },
       select: {
@@ -318,7 +354,7 @@ export async function getGuardians(
         invitedAt: true,
         approvedAt: true,
       },
-      orderBy: [{ order: 'asc' }, { invitedAt: 'asc' }],
+      orderBy: [{ order: "asc" }, { invitedAt: "asc" }],
     });
     res.json({
       guardians: guardians.map((g: (typeof guardians)[number]) => ({
@@ -344,17 +380,17 @@ export async function getGuardians(
 export async function deleteGuardian(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const { id } = req.params;
     const guardian = await prisma.guardian.findFirst({
       where: { id, userId },
       select: { id: true },
     });
-    if (!guardian) throw new AppError('Guardian not found', 404);
+    if (!guardian) throw new AppError("Guardian not found", 404);
     await prisma.guardian.delete({ where: { id: guardian.id } });
     res.status(204).send();
   } catch (e) {
@@ -369,13 +405,16 @@ export async function deleteGuardian(
 export async function deleteMe(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     await prisma.$transaction([
-      prisma.transaction.updateMany({ where: { userId }, data: { userId: null } }),
+      prisma.transaction.updateMany({
+        where: { userId },
+        data: { userId: null },
+      }),
       prisma.apiKey.deleteMany({ where: { userId } }),
       prisma.user.delete({ where: { id: userId } }),
     ]);
@@ -386,9 +425,11 @@ export async function deleteMe(
 }
 
 const walletConfirmSchema = z.object({
-  encryption_method: z.enum(['passcode']),
-  passcode: z.string().min(1, 'passcode required when encryption_method is passcode'),
-  passphrase: z.string().min(1, 'passphrase is required'),
+  encryption_method: z.enum(["passcode"]),
+  passcode: z
+    .string()
+    .min(1, "passcode required when encryption_method is passcode"),
+  passphrase: z.string().min(1, "passphrase is required"),
 });
 
 /**
@@ -399,44 +440,57 @@ const walletConfirmSchema = z.object({
 export async function postWalletConfirm(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const body = walletConfirmSchema.parse(req.body);
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { stellarAddress: true, encryptedStellarSecret: true, passcodeHash: true },
+      select: {
+        stellarAddress: true,
+        encryptedStellarSecret: true,
+        passcodeHash: true,
+      },
     });
-    if (!user) throw new AppError('User not found', 404);
-    if (user.encryptedStellarSecret != null) throw new AppError('Wallet already confirmed', 400);
-    if (!user.stellarAddress) throw new AppError('No wallet to confirm', 400);
+    if (!user) throw new AppError("User not found", 404);
+    if (user.encryptedStellarSecret != null)
+      throw new AppError("Wallet already confirmed", 400);
+    if (!user.stellarAddress) throw new AppError("No wallet to confirm", 400);
     try {
       const kp = Keypair.fromSecret(body.passphrase);
-      if (kp.publicKey() !== user.stellarAddress) throw new AppError('Passphrase does not match wallet', 400);
+      if (kp.publicKey() !== user.stellarAddress)
+        throw new AppError("Passphrase does not match wallet", 400);
     } catch {
-      throw new AppError('Invalid passphrase', 400);
+      throw new AppError("Invalid passphrase", 400);
     }
-    if (body.encryption_method !== 'passcode' || !user.passcodeHash) throw new AppError('Passcode encryption requires a passcode', 400);
-    const passcodeMatch = await bcrypt.compare(body.passcode, user.passcodeHash);
-    if (!passcodeMatch) throw new AppError('Invalid passcode', 401);
+    if (body.encryption_method !== "passcode" || !user.passcodeHash)
+      throw new AppError("Passcode encryption requires a passcode", 400);
+    const passcodeMatch = await bcrypt.compare(
+      body.passcode,
+      user.passcodeHash,
+    );
+    if (!passcodeMatch) throw new AppError("Invalid passcode", 401);
     const salt = WALLET_ENC_SALT_PREFIX + userId;
     const key = crypto.scryptSync(body.passcode, salt, WALLET_ENC_KEYLEN);
     const iv = crypto.randomBytes(WALLET_ENC_IVLEN);
     const cipher = crypto.createCipheriv(WALLET_ENC_ALGO, key, iv);
-    const enc = Buffer.concat([cipher.update(body.passphrase, 'utf8'), cipher.final()]);
+    const enc = Buffer.concat([
+      cipher.update(body.passphrase, "utf8"),
+      cipher.final(),
+    ]);
     const authTag = cipher.getAuthTag(); // 16 bytes for GCM
     const blob = Buffer.concat([iv, enc, authTag]);
-    const encryptedStellarSecret = blob.toString('base64');
+    const encryptedStellarSecret = blob.toString("base64");
     await prisma.user.update({
       where: { id: userId },
-      data: { encryptedStellarSecret, keyEncryptionHint: 'passcode' },
+      data: { encryptedStellarSecret, keyEncryptionHint: "passcode" },
     });
     res.status(200).json({ ok: true });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      const msg = e.errors.map((x) => x.message).join('; ');
+      const msg = e.errors.map((x) => x.message).join("; ");
       return next(new AppError(msg, 400));
     }
     next(e);
@@ -450,19 +504,19 @@ export async function postWalletConfirm(
 export async function getReceive(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { username: true, phoneE164: true, email: true },
     });
-    if (!user) throw new AppError('User not found', 404);
+    if (!user) throw new AppError("User not found", 404);
     const alias = user.username
       ? `@${user.username}`
-      : user.phoneE164 ?? user.email ?? userId.slice(0, 8);
+      : (user.phoneE164 ?? user.email ?? userId.slice(0, 8));
     const pay_uri = `acbu:${alias}`;
     res.json({ alias, pay_uri });
   } catch (e) {
@@ -477,22 +531,25 @@ export async function getReceive(
 export async function getReceiveQrcode(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
-    if (!userId) throw new AppError('User-scoped API key required', 401);
+    if (!userId) throw new AppError("User-scoped API key required", 401);
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { username: true, phoneE164: true, email: true },
     });
-    if (!user) throw new AppError('User not found', 404);
+    if (!user) throw new AppError("User not found", 404);
     const alias = user.username
       ? `@${user.username}`
-      : user.phoneE164 ?? user.email ?? userId.slice(0, 8);
+      : (user.phoneE164 ?? user.email ?? userId.slice(0, 8));
     const pay_uri = `acbu:${alias}`;
-    const QRCode = await import('qrcode');
-    const qr_data_url = await QRCode.toDataURL(pay_uri, { type: 'image/png', margin: 2 });
+    const QRCode = await import("qrcode");
+    const qr_data_url = await QRCode.toDataURL(pay_uri, {
+      type: "image/png",
+      margin: 2,
+    });
     res.json({ pay_uri, qr_data_url });
   } catch (e) {
     next(e);

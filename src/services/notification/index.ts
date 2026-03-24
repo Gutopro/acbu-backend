@@ -5,4 +5,4 @@ export {
   renderWithdrawalStatusTemplate,
   renderReserveAlertTemplate,
   renderInvestmentWithdrawalReadyTemplate,
-} from './notificationService';
+} from "./notificationService";

@@ -151,6 +151,7 @@ Or per network: `CONTRACT_ORACLE_TESTNET`, `CONTRACT_ORACLE_MAINNET`, etc.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NOTIFICATION_EMAIL_PROVIDER` | `log` | `sendgrid` \| `ses` \| `log` |
+| `NOTIFICATION_FROM_EMAIL` | `noreply@acbu.example.com` | Verified sender email for SendGrid/SES |
 | `SENDGRID_API_KEY` | — | SendGrid API key when email provider is sendgrid |
 | `NOTIFICATION_SMS_PROVIDER` | `log` | `twilio` \| `africas_talking` \| `log` |
 | `TWILIO_ACCOUNT_SID` | — | Twilio account SID |

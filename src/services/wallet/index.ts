@@ -1,1 +1,1 @@
-export { ensureWalletForUser, type EnsureWalletResult } from './walletService';
+export { ensureWalletForUser, type EnsureWalletResult } from "./walletService";

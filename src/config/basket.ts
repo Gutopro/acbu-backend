@@ -6,16 +6,16 @@
 
 /** Currencies in weight-descending order: NGN, ZAR, KES, EGP, GHS, RWF, XOF, MAD, TZS, UGX */
 export const BASKET_CURRENCIES: readonly string[] = [
-  'NGN',
-  'ZAR',
-  'KES',
-  'EGP',
-  'GHS',
-  'RWF',
-  'XOF',
-  'MAD',
-  'TZS',
-  'UGX',
+  "NGN",
+  "ZAR",
+  "KES",
+  "EGP",
+  "GHS",
+  "RWF",
+  "XOF",
+  "MAD",
+  "TZS",
+  "UGX",
 ] as const;
 
 /** Target weights (percent) per currency; sum = 100 */
@@ -38,11 +38,11 @@ export type BasketCurrency = (typeof BASKET_CURRENCIES)[number];
 /** Sum of weights; used for validation */
 export const BASKET_WEIGHTS_SUM = Object.values(BASKET_WEIGHTS).reduce(
   (a, b) => a + b,
-  0
+  0,
 );
 
 /** Currencies that must NOT be deposited into the pool. Deposit API accepts only basket currencies. */
-export const FORBIDDEN_DEPOSIT_CURRENCIES = ['USDC', 'USDT'] as const;
+export const FORBIDDEN_DEPOSIT_CURRENCIES = ["USDC", "USDT"] as const;
 
 /** Check if a currency code is allowed for pool deposit (must be in basket). */
 export function isAllowedDepositCurrency(currency: string): boolean {
@@ -52,6 +52,6 @@ export function isAllowedDepositCurrency(currency: string): boolean {
 /** Check if a currency is forbidden (USDC/USDT). */
 export function isForbiddenDepositCurrency(currency: string): boolean {
   return FORBIDDEN_DEPOSIT_CURRENCIES.includes(
-    currency.toUpperCase() as (typeof FORBIDDEN_DEPOSIT_CURRENCIES)[number]
+    currency.toUpperCase() as (typeof FORBIDDEN_DEPOSIT_CURRENCIES)[number],
   );
 }

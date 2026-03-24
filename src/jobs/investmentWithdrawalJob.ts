@@ -1,15 +1,15 @@
 /**
  * Investment withdrawal job: at T+24h mark requests as 'available' and send "investment withdrawal ready" notification.
  */
-import { prisma } from '../config/database';
-import { publishInvestmentWithdrawalReady } from '../controllers/investmentController';
-import { logger } from '../config/logger';
+import { prisma } from "../config/database";
+import { publishInvestmentWithdrawalReady } from "../controllers/investmentController";
+import { logger } from "../config/logger";
 
 export async function processInvestmentWithdrawalAvailability(): Promise<void> {
   const now = new Date();
   const records = await prisma.investmentWithdrawalRequest.findMany({
     where: {
-      status: { in: ['requested', 'processing'] },
+      status: { in: ["requested", "processing"] },
       availableAt: { lte: now },
     },
     take: 100,
@@ -18,19 +18,22 @@ export async function processInvestmentWithdrawalAvailability(): Promise<void> {
     try {
       await prisma.investmentWithdrawalRequest.update({
         where: { id: r.id },
-        data: { status: 'available', notifiedAt: new Date() },
+        data: { status: "available", notifiedAt: new Date() },
       });
       const amountAcbu = r.amountAcbu.toNumber();
       if (r.userId) {
         await publishInvestmentWithdrawalReady(r.userId, amountAcbu);
       }
-      logger.info('Investment withdrawal marked available and notified', {
+      logger.info("Investment withdrawal marked available and notified", {
         requestId: r.id,
         userId: r.userId,
         amountAcbu,
       });
     } catch (e) {
-      logger.error('Investment withdrawal job failed for request', { requestId: r.id, error: e });
+      logger.error("Investment withdrawal job failed for request", {
+        requestId: r.id,
+        error: e,
+      });
     }
   }
 }
@@ -42,8 +45,8 @@ export async function startInvestmentWithdrawalScheduler(): Promise<void> {
   const intervalMs = 60 * 1000;
   setInterval(() => {
     processInvestmentWithdrawalAvailability().catch((e) =>
-      logger.error('Investment withdrawal job error', { error: e })
+      logger.error("Investment withdrawal job error", { error: e }),
     );
   }, intervalMs);
-  logger.info('Investment withdrawal scheduler started', { intervalMs });
+  logger.info("Investment withdrawal scheduler started", { intervalMs });
 }

@@ -1,16 +1,18 @@
-import { Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { AuthRequest } from '../middleware/auth';
-import { createTransfer } from '../services/transfer/transferService';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/errorHandler';
+import { Response, NextFunction } from "express";
+import { z } from "zod";
+import { AuthRequest } from "../middleware/auth";
+import { createTransfer } from "../services/transfer/transferService";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/errorHandler";
 
 const createTransferSchema = z.object({
-  to: z.string().min(1, 'to is required'),
-  amount_acbu: z.string().min(1, 'amount_acbu is required').refine(
-    (s) => !Number.isNaN(Number(s)) && Number(s) > 0,
-    { message: 'amount_acbu must be a positive number' }
-  ),
+  to: z.string().min(1, "to is required"),
+  amount_acbu: z
+    .string()
+    .min(1, "amount_acbu is required")
+    .refine((s) => !Number.isNaN(Number(s)) && Number(s) > 0, {
+      message: "amount_acbu must be a positive number",
+    }),
 });
 
 /**
@@ -21,12 +23,12 @@ const createTransferSchema = z.object({
 export async function postTransfers(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
     const body = createTransferSchema.parse(req.body);
     const result = await createTransfer(
@@ -34,7 +36,7 @@ export async function postTransfers(
         senderUserId: userId,
         to: body.to.trim(),
         amountAcbu: body.amount_acbu.trim(),
-      }
+      },
       // getSenderSigningKey not passed: tx stays pending until key/worker is wired
     );
     res.status(201).json({
@@ -43,37 +45,63 @@ export async function postTransfers(
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      const msg = e.errors.map((x) => x.message).join('; ');
+      const msg = e.errors.map((x) => x.message).join("; ");
       return next(new AppError(msg, 400));
     }
-    if (e instanceof Error && (e.message === 'Recipient not found or not available' || e.message === 'Sender user not found')) {
+    if (
+      e instanceof Error &&
+      (e.message === "Recipient not found or not available" ||
+        e.message === "Sender user not found")
+    ) {
       return next(new AppError(e.message, 404));
     }
-    if (e instanceof Error && e.message.includes('KYC required to make payments')) {
+    if (
+      e instanceof Error &&
+      e.message.includes("KYC required to make payments")
+    ) {
       return next(new AppError(e.message, 403));
     }
     next(e);
   }
 }
 
+const getTransfersQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : 20))
+    .pipe(z.number().int().min(1).max(100)),
+  cursor: z.string().optional(), // last transaction_id from previous page
+});
+
 /**
- * GET /transfers
- * List current user's transfers (optional; no raw address in default response).
+ * GET /transfers?limit=20&cursor=<last_transaction_id>
+ * List current user's transfers with cursor-based pagination.
+ * Returns { transfers, next_cursor } — pass next_cursor as cursor on the next request.
  */
 export async function getTransfers(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
+
+    const query = getTransfersQuerySchema.safeParse(req.query);
+    if (!query.success) {
+      const msg = query.error.errors.map((x) => x.message).join("; ");
+      throw new AppError(msg, 400);
+    }
+    const { limit, cursor } = query.data;
+
     const list = await prisma.transaction.findMany({
-      where: { userId, type: 'transfer' },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
+      where: { userId, type: "transfer" },
+      orderBy: { createdAt: "desc" },
+      take: limit + 1, // fetch one extra to determine if there's a next page
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true,
         status: true,
@@ -84,17 +112,26 @@ export async function getTransfers(
         completedAt: true,
       },
     });
-    const items = list.map((t: (typeof list)[number]) => ({
+
+    const hasMore = list.length > limit;
+    const page = hasMore ? list.slice(0, limit) : list;
+    const nextCursor = hasMore ? page[page.length - 1].id : null;
+
+    const items = page.map((t: (typeof page)[number]) => ({
       transaction_id: t.id,
       status: t.status,
       amount_acbu: t.acbuAmount?.toString() ?? null,
-      recipient_address: null as string | null, // hide address in default response
       blockchain_tx_hash: t.blockchainTxHash ?? undefined,
       created_at: t.createdAt.toISOString(),
       completed_at: t.completedAt?.toISOString() ?? undefined,
     }));
-    res.json({ transfers: items });
+
+    res.json({ transfers: items, next_cursor: nextCursor });
   } catch (e) {
+    if (e instanceof z.ZodError) {
+      const msg = e.errors.map((x) => x.message).join("; ");
+      return next(new AppError(msg, 400));
+    }
     next(e);
   }
 }
@@ -106,16 +143,16 @@ export async function getTransfers(
 export async function getTransferById(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
     const { id } = req.params;
     const tx = await prisma.transaction.findFirst({
-      where: { id, userId, type: 'transfer' },
+      where: { id, userId, type: "transfer" },
       select: {
         id: true,
         status: true,
@@ -127,7 +164,7 @@ export async function getTransferById(
       },
     });
     if (!tx) {
-      throw new AppError('Transfer not found', 404);
+      throw new AppError("Transfer not found", 404);
     }
     res.json({
       transaction_id: tx.id,

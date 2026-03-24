@@ -52,7 +52,7 @@ export async function processUsdcConvertAndMint(
   payload: UsdcConvertAndMintPayload,
 ): Promise<void> {
   const { onRampSwapId } = payload;
-  const swap = await (prisma as any).onRampSwap.findUnique({
+  const swap = await prisma.onRampSwap.findUnique({
     where: { id: onRampSwapId },
   });
   if (
@@ -71,7 +71,7 @@ export async function processUsdcConvertAndMint(
     return;
   }
 
-  await (prisma as any).onRampSwap.update({
+  await prisma.onRampSwap.update({
     where: { id: onRampSwapId },
     data: { status: "processing" },
   });
@@ -83,7 +83,7 @@ export async function processUsdcConvertAndMint(
       swap.stellarAddress,
       swap.userId,
     );
-    await (prisma as any).onRampSwap.update({
+    await prisma.onRampSwap.update({
       where: { id: onRampSwapId },
       data: {
         status: "completed",
@@ -99,7 +99,7 @@ export async function processUsdcConvertAndMint(
       transactionId,
     });
   } catch (e) {
-    await (prisma as any).onRampSwap.update({
+    await prisma.onRampSwap.update({
       where: { id: onRampSwapId },
       data: { status: "failed" },
     });

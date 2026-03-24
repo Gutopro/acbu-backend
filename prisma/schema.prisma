@@ -317,6 +317,7 @@ model ApiKey {
   id             String    @id @default(uuid()) @db.Uuid
   userId         String?   @map("user_id") @db.Uuid
   organizationId String?   @map("organization_id") @db.Uuid
+  lookupKey      String?   @unique @map("lookup_key") @db.VarChar(24)
   keyHash        String    @unique @map("key_hash") @db.VarChar(255)
   permissions    Json?     // segment scopes: e.g. ["p2p:read", "p2p:write", "sme:write", "gateway:write"]
   rateLimit      Int       @default(100) @map("rate_limit")

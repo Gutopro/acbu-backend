@@ -1,1 +1,1 @@
-export { fetchAndStoreRates, getTwap24h } from './integrationService';
+export { fetchAndStoreRates, getTwap24h } from "./integrationService";

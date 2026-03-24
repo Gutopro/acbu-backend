@@ -26,13 +26,13 @@ export interface FintechProvider {
   convertCurrency(
     amount: number,
     fromCurrency: string,
-    toCurrency: string
+    toCurrency: string,
   ): Promise<ConvertCurrencyResult>;
   disburseFunds(
     amount: number,
     currency: string,
-    recipient: DisburseRecipient
+    recipient: DisburseRecipient,
   ): Promise<DisburseResult>;
 }
 
-export type FintechProviderId = 'flutterwave' | 'paystack' | 'mtn_momo';
+export type FintechProviderId = "flutterwave" | "paystack" | "mtn_momo";

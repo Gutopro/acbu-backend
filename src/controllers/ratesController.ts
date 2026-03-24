@@ -2,17 +2,17 @@
  * GET /v1/rates - Return current ACBU rates (from AcbuRate and OracleRate).
  * GET /v1/rates/quote - Return equivalent value for a given ACBU amount and optional target currency.
  */
-import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../config/database';
+import { Request, Response, NextFunction } from "express";
+import { prisma } from "../config/database";
 
 export async function getRates(
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const latest = await prisma.acbuRate.findFirst({
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
     if (!latest) {
       res.status(200).json({
@@ -23,7 +23,7 @@ export async function getRates(
         acbu_rwf: null,
         change_24h_usd: null,
         timestamp: new Date().toISOString(),
-        message: 'No rate data yet; oracle integration will populate.',
+        message: "No rate data yet; oracle integration will populate.",
       });
       return;
     }
@@ -56,20 +56,20 @@ export async function getRates(
 export async function getRatesQuote(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const amount = Math.max(0, Number(req.query.amount) || 0);
 
     const latest = await prisma.acbuRate.findFirst({
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
     if (!latest) {
       res.status(200).json({
         amount_acbu: amount,
         equivalent: {},
         timestamp: new Date().toISOString(),
-        message: 'No rate data yet.',
+        message: "No rate data yet.",
       });
       return;
     }
@@ -79,18 +79,18 @@ export async function getRatesQuote(
     equivalent.USD = (amount * acbuUsd).toFixed(2);
 
     const rates: { code: string; val: number | null }[] = [
-      { code: 'EUR', val: latest.acbuEur?.toNumber() ?? null },
-      { code: 'GBP', val: latest.acbuGbp?.toNumber() ?? null },
-      { code: 'NGN', val: latest.acbuNgn?.toNumber() ?? null },
-      { code: 'KES', val: latest.acbuKes?.toNumber() ?? null },
-      { code: 'ZAR', val: latest.acbuZar?.toNumber() ?? null },
-      { code: 'RWF', val: latest.acbuRwf?.toNumber() ?? null },
-      { code: 'GHS', val: latest.acbuGhs?.toNumber() ?? null },
-      { code: 'EGP', val: latest.acbuEgp?.toNumber() ?? null },
-      { code: 'MAD', val: latest.acbuMad?.toNumber() ?? null },
-      { code: 'TZS', val: latest.acbuTzs?.toNumber() ?? null },
-      { code: 'UGX', val: latest.acbuUgx?.toNumber() ?? null },
-      { code: 'XOF', val: latest.acbuXof?.toNumber() ?? null },
+      { code: "EUR", val: latest.acbuEur?.toNumber() ?? null },
+      { code: "GBP", val: latest.acbuGbp?.toNumber() ?? null },
+      { code: "NGN", val: latest.acbuNgn?.toNumber() ?? null },
+      { code: "KES", val: latest.acbuKes?.toNumber() ?? null },
+      { code: "ZAR", val: latest.acbuZar?.toNumber() ?? null },
+      { code: "RWF", val: latest.acbuRwf?.toNumber() ?? null },
+      { code: "GHS", val: latest.acbuGhs?.toNumber() ?? null },
+      { code: "EGP", val: latest.acbuEgp?.toNumber() ?? null },
+      { code: "MAD", val: latest.acbuMad?.toNumber() ?? null },
+      { code: "TZS", val: latest.acbuTzs?.toNumber() ?? null },
+      { code: "UGX", val: latest.acbuUgx?.toNumber() ?? null },
+      { code: "XOF", val: latest.acbuXof?.toNumber() ?? null },
     ];
     for (const { code, val } of rates) {
       if (val != null && val > 0) {

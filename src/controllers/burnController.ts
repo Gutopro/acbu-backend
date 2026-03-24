@@ -2,28 +2,37 @@
  * POST /v1/burn/acbu - Burn ACBU for local currency redemption.
  * Creates transaction record; invokes burning contract when configured.
  */
-import { Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { prisma } from '../config/database';
-import { getContractAddresses } from '../config/contracts';
-import { acbuBurningService } from '../services/contracts';
-import { AuthRequest } from '../middleware/auth';
-import { Decimal } from '@prisma/client/runtime/library';
-import { logAudit } from '../services/audit';
-import { checkWithdrawalLimits, isCurrencyWithdrawalPaused } from '../services/limits/limitsService';
-import { getBurnFeeBps } from '../services/feePolicy/feePolicyService';
+import { Response, NextFunction } from "express";
+import { z } from "zod";
+import { prisma } from "../config/database";
+import { getContractAddresses } from "../config/contracts";
+import { acbuBurningService } from "../services/contracts";
+import { AuthRequest } from "../middleware/auth";
+import { Decimal } from "@prisma/client/runtime/library";
+import { logAudit } from "../services/audit";
+import {
+  checkWithdrawalLimits,
+  isCurrencyWithdrawalPaused,
+} from "../services/limits/limitsService";
+import { getBurnFeeBps } from "../services/feePolicy/feePolicyService";
 
 const DECIMALS_7 = 1e7;
 
 const recipientAccountSchema = z.object({
-  type: z.enum(['bank', 'mobile_money']).optional(),
+  type: z.enum(["bank", "mobile_money"]).optional(),
   account_number: z.string().min(1),
   bank_code: z.string().min(1),
   account_name: z.string().min(1),
 });
 
 const bodySchema = z.object({
-  acbu_amount: z.string().min(1).refine((s) => !Number.isNaN(Number(s)) && Number(s) > 0, 'must be positive'),
+  acbu_amount: z
+    .string()
+    .min(1)
+    .refine(
+      (s) => !Number.isNaN(Number(s)) && Number(s) > 0,
+      "must be positive",
+    ),
   currency: z.string().length(3).toUpperCase(),
   recipient_account: recipientAccountSchema,
 });
@@ -31,12 +40,14 @@ const bodySchema = z.object({
 export async function burnAcbu(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+      res
+        .status(400)
+        .json({ error: "Invalid request", details: parsed.error.flatten() });
       return;
     }
     const { acbu_amount, currency, recipient_account } = parsed.data;
@@ -49,8 +60,8 @@ export async function burnAcbu(
       const paused = await isCurrencyWithdrawalPaused(currency);
       if (paused) {
         res.status(503).json({
-          error: 'Withdrawal paused for currency',
-          code: 'CIRCUIT_BREAKER',
+          error: "Withdrawal paused for currency",
+          code: "CIRCUIT_BREAKER",
           message: `Single-currency withdrawals for ${currency} are temporarily paused (reserve below threshold). Basket withdrawals continue.`,
         });
         return;
@@ -60,28 +71,32 @@ export async function burnAcbu(
         acbuNum,
         currency,
         req.apiKey?.userId ?? null,
-        req.apiKey?.organizationId ?? null
+        req.apiKey?.organizationId ?? null,
       );
     }
 
     const tx = await prisma.transaction.create({
       data: {
         userId: req.apiKey?.userId ?? undefined,
-        type: 'burn',
-        status: 'pending',
+        type: "burn",
+        status: "pending",
         acbuAmountBurned: new Decimal(acbuNum),
         localCurrency: currency,
         recipientAccount: recipient_account as object,
         fee: new Decimal(feeAcbu),
-        rateSnapshot: { acbu_ngn: null, timestamp: new Date().toISOString() },
+        rateSnapshot: {
+          acbu_ngn: null,
+          organizationId: req.apiKey?.organizationId ?? null,
+          timestamp: new Date().toISOString(),
+        },
       },
     });
     await logAudit({
-      eventType: 'transaction',
-      entityType: 'transaction',
+      eventType: "transaction",
+      entityType: "transaction",
       entityId: tx.id,
-      action: 'burn_created',
-      newValue: { type: 'burn', acbuAmount: acbuNum, currency },
+      action: "burn_created",
+      newValue: { type: "burn", acbuAmount: acbuNum, currency },
       performedBy: req.apiKey?.userId ?? undefined,
     });
 
@@ -101,7 +116,7 @@ export async function burnAcbu(
         await prisma.transaction.update({
           where: { id: tx.id },
           data: {
-            status: 'processing',
+            status: "processing",
             localAmount: new Decimal(localNum),
             blockchainTxHash: result.transactionHash,
           },
@@ -113,7 +128,7 @@ export async function burnAcbu(
           currency,
           fee: String(feeAcbu),
           rate: { acbu_ngn: null, timestamp: new Date().toISOString() },
-          status: 'processing',
+          status: "processing",
           estimated_completion: null,
           blockchain_tx_hash: result.transactionHash,
         });
@@ -121,7 +136,7 @@ export async function burnAcbu(
       } catch (err) {
         await prisma.transaction.update({
           where: { id: tx.id },
-          data: { status: 'failed' },
+          data: { status: "failed" },
         });
         next(err);
         return;
@@ -135,7 +150,7 @@ export async function burnAcbu(
       currency,
       fee: String(feeAcbu),
       rate: { acbu_ngn: null, timestamp: new Date().toISOString() },
-      status: 'pending',
+      status: "pending",
       estimated_completion: null,
     });
   } catch (error) {

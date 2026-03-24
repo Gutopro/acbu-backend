@@ -9,4 +9,4 @@ export {
   type SignupResult,
   type Verify2faParams,
   type Verify2faResult,
-} from './authService';
+} from "./authService";

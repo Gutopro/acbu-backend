@@ -1,24 +1,29 @@
 /**
  * Listens for MintEvent (contract_credited) on acbu_minting contract and enqueues USDC_CONVERSION jobs.
  */
-import { eventListener, ContractEvent } from '../services/stellar/eventListener';
-import { contractAddresses } from '../config/contracts';
-import { enqueueUsdcConversion } from './usdcConversionJob';
-import { logger } from '../config/logger';
-import { prisma } from '../config/database';
+import {
+  eventListener,
+  ContractEvent,
+} from "../services/stellar/eventListener";
+import { contractAddresses } from "../config/contracts";
+import { enqueueUsdcConversion } from "./usdcConversionJob";
+import { logger } from "../config/logger";
+import { prisma } from "../config/database";
 
-const MINT_EFFECT_TYPES = ['contract_credited', 'contract_effect']; // Horizon effect types for mint/credit
+const MINT_EFFECT_TYPES = ["contract_credited", "contract_effect"]; // Horizon effect types for mint/credit
 
 function parseAmountFromEffect(data: Record<string, unknown>): string | null {
   const amount = data.amount ?? data.value;
-  if (typeof amount === 'string') return amount;
-  if (typeof amount === 'number') return String(amount);
+  if (typeof amount === "string") return amount;
+  if (typeof amount === "number") return String(amount);
   return null;
 }
 
-function parseRecipientFromEffect(data: Record<string, unknown>): string | null {
+function parseRecipientFromEffect(
+  data: Record<string, unknown>,
+): string | null {
   const account = data.account ?? data.recipient ?? data.to;
-  if (typeof account === 'string' && account.length === 56) return account;
+  if (typeof account === "string" && account.length === 56) return account;
   return null;
 }
 
@@ -27,10 +32,10 @@ function parseRecipientFromEffect(data: Record<string, unknown>): string | null 
  */
 function parseTxHashFromEffect(data: Record<string, unknown>): string | null {
   const txHash = data.transaction_hash ?? data.transaction_id ?? data.tx_hash;
-  if (typeof txHash === 'string') return txHash;
+  if (typeof txHash === "string") return txHash;
   const links = data._links as Record<string, { href?: string }> | undefined;
   const txHref = links?.transaction?.href;
-  if (typeof txHref === 'string') {
+  if (typeof txHref === "string") {
     const match = txHref.match(/\/([a-f0-9]+)$/i);
     if (match) return match[1];
   }
@@ -40,9 +45,15 @@ function parseTxHashFromEffect(data: Record<string, unknown>): string | null {
 /**
  * Find a pending mint Transaction by blockchain tx hash (set by API after invoke).
  */
-async function findTransactionByBlockchainHash(txHash: string): Promise<string | null> {
+async function findTransactionByBlockchainHash(
+  txHash: string,
+): Promise<string | null> {
   const tx = await prisma.transaction.findFirst({
-    where: { type: 'mint', blockchainTxHash: txHash, status: { in: ['pending', 'processing'] } },
+    where: {
+      type: "mint",
+      blockchainTxHash: txHash,
+      status: { in: ["pending", "processing"] },
+    },
     select: { id: true },
   });
   return tx?.id ?? null;
@@ -51,7 +62,7 @@ async function findTransactionByBlockchainHash(txHash: string): Promise<string |
 export async function startMintEventListener(): Promise<void> {
   const mintingContractId = contractAddresses.minting;
   if (!mintingContractId) {
-    logger.info('Mint event listener skipped: no CONTRACT_MINTING configured');
+    logger.info("Mint event listener skipped: no CONTRACT_MINTING configured");
     return;
   }
 
@@ -60,7 +71,7 @@ export async function startMintEventListener(): Promise<void> {
     const amountStr = parseAmountFromEffect(data);
     const recipient = parseRecipientFromEffect(data);
     if (!amountStr || !recipient) {
-      logger.debug('Mint event skipped: missing amount or recipient', {
+      logger.debug("Mint event skipped: missing amount or recipient", {
         type: event.type,
         hasAmount: !!amountStr,
         hasRecipient: !!recipient,
@@ -69,13 +80,17 @@ export async function startMintEventListener(): Promise<void> {
     }
     const amountNum = parseFloat(amountStr);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
-      logger.debug('Mint event skipped: invalid amount', { amountStr });
+      logger.debug("Mint event skipped: invalid amount", { amountStr });
       return;
     }
 
-    const rawTxHash = parseTxHashFromEffect(data) ?? (event.data as Record<string, unknown> | undefined)?.id;
+    const rawTxHash =
+      parseTxHashFromEffect(data) ??
+      (event.data as Record<string, unknown> | undefined)?.id;
     const txHash: string =
-      typeof rawTxHash === 'string' ? rawTxHash : `effect-${event.ledger}-${Date.now()}`;
+      typeof rawTxHash === "string"
+        ? rawTxHash
+        : `effect-${event.ledger}-${Date.now()}`;
     let transactionId: string | null = null;
     if (txHash.length === 64) {
       transactionId = await findTransactionByBlockchainHash(txHash);
@@ -92,9 +107,9 @@ export async function startMintEventListener(): Promise<void> {
   eventListener.listenToContractEvents(
     mintingContractId,
     MINT_EFFECT_TYPES,
-    handler
+    handler,
   );
-  logger.info('Mint event listener registered', {
+  logger.info("Mint event listener registered", {
     contractId: mintingContractId,
     effectTypes: MINT_EFFECT_TYPES,
   });

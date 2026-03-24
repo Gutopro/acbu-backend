@@ -2,11 +2,11 @@
  * JWT helpers for 2FA challenge tokens.
  * Reuses JWT_SECRET from config; challenge tokens are short-lived (e.g. 5m).
  */
-import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
+import jwt from "jsonwebtoken";
+import { config } from "../config/env";
 
-const CHALLENGE_EXPIRY = '5m';
-const PURPOSE = 'signin_2fa';
+const CHALLENGE_EXPIRY = "5m";
+const PURPOSE = "signin_2fa";
 
 export interface ChallengePayload {
   userId: string;
@@ -20,12 +20,12 @@ export interface ChallengePayload {
  */
 export function signChallengeToken(userId: string): string {
   if (!config.jwtSecret) {
-    throw new Error('JWT_SECRET is required for challenge tokens');
+    throw new Error("JWT_SECRET is required for challenge tokens");
   }
   return jwt.sign(
     { userId, purpose: PURPOSE } as ChallengePayload,
     config.jwtSecret,
-    { expiresIn: CHALLENGE_EXPIRY }
+    { expiresIn: CHALLENGE_EXPIRY },
   );
 }
 
@@ -34,11 +34,11 @@ export function signChallengeToken(userId: string): string {
  */
 export function verifyChallengeToken(token: string): ChallengePayload {
   if (!config.jwtSecret) {
-    throw new Error('JWT_SECRET is required for challenge tokens');
+    throw new Error("JWT_SECRET is required for challenge tokens");
   }
   const decoded = jwt.verify(token, config.jwtSecret) as ChallengePayload;
   if (decoded.purpose !== PURPOSE) {
-    throw new Error('Invalid challenge token purpose');
+    throw new Error("Invalid challenge token purpose");
   }
   return decoded;
 }

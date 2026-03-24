@@ -2,12 +2,12 @@
  * Metrics ingestion for basket weight formula: GDP (40%), Trade (30%), Liquidity (30%).
  * Fetches from World Bank API and platform data; stores BasketMetrics; computes proposed weights.
  */
-import { prisma } from '../../config/database';
-import { logger } from '../../config/logger';
-import { basketService } from '../basket';
-import { fetchGdpUsd } from './worldBankClient';
-import { BASKET_CURRENCIES } from '../../config/basket';
-import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from "../../config/database";
+import { logger } from "../../config/logger";
+import { basketService } from "../basket";
+import { fetchGdpUsd } from "./worldBankClient";
+import { BASKET_CURRENCIES } from "../../config/basket";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const GDP_WEIGHT = 0.4;
 const TRADE_WEIGHT = 0.3;
@@ -28,12 +28,14 @@ function normalizeToScores(values: Map<string, number>): Map<string, number> {
  * Fetch trade volume per currency from platform (burn transactions by localCurrency).
  * Returns map of currency -> volume (e.g. sum of localAmount or acbuAmountBurned).
  */
-async function getTradeVolumeByCurrency(periodDays: number): Promise<Map<string, number>> {
+async function getTradeVolumeByCurrency(
+  periodDays: number,
+): Promise<Map<string, number>> {
   const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
   const burns = await prisma.transaction.findMany({
     where: {
-      type: 'burn',
-      status: 'completed',
+      type: "burn",
+      status: "completed",
       localCurrency: { not: null },
       createdAt: { gte: since },
     },
@@ -44,9 +46,10 @@ async function getTradeVolumeByCurrency(periodDays: number): Promise<Map<string,
     byCurrency.set(c, 0);
   }
   for (const b of burns) {
-    const cc = b.localCurrency ?? '';
+    const cc = b.localCurrency ?? "";
     if (!byCurrency.has(cc)) continue;
-    const amount = b.acbuAmountBurned?.toNumber() ?? b.localAmount?.toNumber() ?? 0;
+    const amount =
+      b.acbuAmountBurned?.toNumber() ?? b.localAmount?.toNumber() ?? 0;
     byCurrency.set(cc, (byCurrency.get(cc) ?? 0) + amount);
   }
   return byCurrency;
@@ -56,7 +59,9 @@ async function getTradeVolumeByCurrency(periodDays: number): Promise<Map<string,
  * Ingest metrics for a period (e.g. "2025-Q1" or "monthly-202501"), store in BasketMetrics,
  * then compute proposed weights and create BasketConfig rows with status 'proposed'.
  */
-export async function ingestMetricsAndProposeWeights(period: string): Promise<void> {
+export async function ingestMetricsAndProposeWeights(
+  period: string,
+): Promise<void> {
   const periodDays = 90;
   let currencies = await basketService.getCurrencies();
   if (currencies.length === 0) {
@@ -104,14 +109,14 @@ export async function ingestMetricsAndProposeWeights(period: string): Promise<vo
         tradeScore: new Decimal(tradeScore),
         liquidityScore: new Decimal(liquidityScore),
         rawValues,
-        source: 'world_bank+platform',
+        source: "world_bank+platform",
       },
       update: {
         gdpScore: new Decimal(gdpScore),
         tradeScore: new Decimal(tradeScore),
         liquidityScore: new Decimal(liquidityScore),
         rawValues,
-        source: 'world_bank+platform',
+        source: "world_bank+platform",
       },
     });
   }
@@ -132,12 +137,12 @@ export async function ingestMetricsAndProposeWeights(period: string): Promise<vo
         effectiveFrom,
         currency,
         weight: new Decimal(Math.round(weight * 100) / 100),
-        status: 'proposed',
+        status: "proposed",
       },
     });
   }
 
-  logger.info('Metrics ingested and proposed weights created', {
+  logger.info("Metrics ingested and proposed weights created", {
     period,
     currencies: currencies.length,
   });

@@ -1,34 +1,35 @@
-import swaggerJsdoc from 'swagger-jsdoc';
-import { config } from './env';
+import swaggerJsdoc from "swagger-jsdoc";
+import { config } from "./env";
 
 const options: swaggerJsdoc.Options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'ACBU API',
-      version: '1.0.0',
-      description: 'API documentation for ACBU (African Currency Basket Unit) platform',
+      title: "ACBU API",
+      version: "1.0.0",
+      description:
+        "API documentation for ACBU (African Currency Basket Unit) platform",
       contact: {
-        name: 'ACBU Support',
+        name: "ACBU Support",
       },
     },
     servers: [
       {
         url: `http://localhost:${config.port}`,
-        description: 'Development server',
+        description: "Development server",
       },
     ],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-API-Key',
+          type: "apiKey",
+          in: "header",
+          name: "X-API-Key",
         },
         BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
         },
       },
     },
@@ -38,7 +39,7 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: ['./src/routes/**/*.ts', './src/controllers/**/*.ts'],
+  apis: ["./src/routes/**/*.ts", "./src/controllers/**/*.ts"],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

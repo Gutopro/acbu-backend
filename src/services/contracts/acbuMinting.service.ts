@@ -1,6 +1,6 @@
-import { contractClient, ContractClient } from '../stellar/contractClient';
-import { stellarClient } from '../stellar/client';
-import { logger } from '../../config/logger';
+import { contractClient, ContractClient } from "../stellar/contractClient";
+import { stellarClient } from "../stellar/client";
+import { logger } from "../../config/logger";
 
 export interface MintFromUsdcParams {
   usdcAmount: string; // Amount in smallest unit (7 decimals)
@@ -31,11 +31,11 @@ export class MintingService {
     acbuAmount: string;
   }> {
     try {
-      logger.info('Minting ACBU from USDC', params);
+      logger.info("Minting ACBU from USDC", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       // Convert amount to i128 (7 decimals)
@@ -51,7 +51,7 @@ export class MintingService {
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'mint_from_usdc',
+        functionName: "mint_from_usdc",
         args,
         sourceAccount,
       });
@@ -59,7 +59,7 @@ export class MintingService {
       // Parse result (ACBU amount minted)
       const acbuAmount = ContractClient.fromScVal(result.result);
 
-      logger.info('Minting successful', {
+      logger.info("Minting successful", {
         transactionHash: result.transactionHash,
         acbuAmount: acbuAmount.toString(),
       });
@@ -69,7 +69,7 @@ export class MintingService {
         acbuAmount: acbuAmount.toString(),
       };
     } catch (error) {
-      logger.error('Failed to mint from USDC', { params, error });
+      logger.error("Failed to mint from USDC", { params, error });
       throw error;
     }
   }
@@ -82,11 +82,11 @@ export class MintingService {
     acbuAmount: string;
   }> {
     try {
-      logger.info('Minting ACBU from fiat', params);
+      logger.info("Minting ACBU from fiat", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       // Build function arguments
@@ -100,7 +100,7 @@ export class MintingService {
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'mint_from_fiat',
+        functionName: "mint_from_fiat",
         args,
         sourceAccount,
       });
@@ -108,7 +108,7 @@ export class MintingService {
       // Parse result
       const acbuAmount = ContractClient.fromScVal(result.result);
 
-      logger.info('Fiat minting successful', {
+      logger.info("Fiat minting successful", {
         transactionHash: result.transactionHash,
         acbuAmount: acbuAmount.toString(),
       });
@@ -118,7 +118,7 @@ export class MintingService {
         acbuAmount: acbuAmount.toString(),
       };
     } catch (error) {
-      logger.error('Failed to mint from fiat', { params, error });
+      logger.error("Failed to mint from fiat", { params, error });
       throw error;
     }
   }
@@ -130,14 +130,14 @@ export class MintingService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_fee_rate',
-        []
+        "get_fee_rate",
+        [],
       );
 
       const feeRate = ContractClient.fromScVal(result);
       return Number(feeRate);
     } catch (error) {
-      logger.error('Failed to get fee rate', { error });
+      logger.error("Failed to get fee rate", { error });
       throw error;
     }
   }
@@ -149,13 +149,13 @@ export class MintingService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'is_paused',
-        []
+        "is_paused",
+        [],
       );
 
       return ContractClient.fromScVal(result) as boolean;
     } catch (error) {
-      logger.error('Failed to check pause status', { error });
+      logger.error("Failed to check pause status", { error });
       throw error;
     }
   }
@@ -167,23 +167,23 @@ export class MintingService {
     try {
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'pause',
+        functionName: "pause",
         args: [],
         sourceAccount,
       });
 
-      logger.info('Contract paused', {
+      logger.info("Contract paused", {
         transactionHash: result.transactionHash,
       });
 
       return result.transactionHash;
     } catch (error) {
-      logger.error('Failed to pause contract', { error });
+      logger.error("Failed to pause contract", { error });
       throw error;
     }
   }
@@ -195,23 +195,23 @@ export class MintingService {
     try {
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'unpause',
+        functionName: "unpause",
         args: [],
         sourceAccount,
       });
 
-      logger.info('Contract unpaused', {
+      logger.info("Contract unpaused", {
         transactionHash: result.transactionHash,
       });
 
       return result.transactionHash;
     } catch (error) {
-      logger.error('Failed to unpause contract', { error });
+      logger.error("Failed to unpause contract", { error });
       throw error;
     }
   }

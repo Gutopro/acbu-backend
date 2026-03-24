@@ -2,13 +2,13 @@
  * Consumes USDC_CONVERSION queue: when MintEvent is received, process USDC → basket allocation.
  * Updates transaction and reserve history; basket weight distribution uses BasketService.
  */
-import type { ConsumeMessage } from 'amqplib';
-import { connectRabbitMQ, QUEUES } from '../config/rabbitmq';
-import { logger } from '../config/logger';
-import { prisma } from '../config/database';
-import { basketService } from '../services/basket';
-import { getFintechRouter } from '../services/fintech';
-import { Decimal } from '@prisma/client/runtime/library';
+import type { ConsumeMessage } from "amqplib";
+import { connectRabbitMQ, QUEUES } from "../config/rabbitmq";
+import { logger } from "../config/logger";
+import { prisma } from "../config/database";
+import { basketService } from "../services/basket";
+import { getFintechRouter } from "../services/fintech";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const QUEUE = QUEUES.USDC_CONVERSION;
 
@@ -28,7 +28,9 @@ export async function startUsdcConversionConsumer(): Promise<void> {
     async (msg: ConsumeMessage | null) => {
       if (!msg) return;
       try {
-        const body = JSON.parse(msg.content.toString()) as UsdcConversionPayload;
+        const body = JSON.parse(
+          msg.content.toString(),
+        ) as UsdcConversionPayload;
         const { usdcAmount, recipient, txHash, transactionId } = body;
         const usdcNum = Number(usdcAmount);
         if (!(usdcNum > 0)) {
@@ -43,15 +45,19 @@ export async function startUsdcConversionConsumer(): Promise<void> {
           try {
             const router = getFintechRouter();
             const provider = router.getProvider(currency);
-            await provider.convertCurrency(usdcNum * weightFrac, 'USD', currency);
+            await provider.convertCurrency(
+              usdcNum * weightFrac,
+              "USD",
+              currency,
+            );
           } catch (e) {
-            logger.warn('USDC conversion: FX skip', { currency, error: e });
+            logger.warn("USDC conversion: FX skip", { currency, error: e });
           }
           await prisma.reserveHistory.create({
             data: {
               currency,
               amountChange: new Decimal(amountLocal),
-              reason: 'conversion',
+              reason: "conversion",
               newAmount: null,
             },
           });
@@ -61,31 +67,39 @@ export async function startUsdcConversionConsumer(): Promise<void> {
           await prisma.transaction.update({
             where: { id: transactionId },
             data: {
-              status: 'completed',
+              status: "completed",
               blockchainTxHash: txHash,
               completedAt: new Date(),
             },
           });
         }
 
-        logger.info('USDC conversion processed', { usdcAmount, recipient, txHash });
+        logger.info("USDC conversion processed", {
+          usdcAmount,
+          recipient,
+          txHash,
+        });
         ch.ack(msg);
       } catch (e) {
-        logger.error('USDC conversion job failed', { error: e });
+        logger.error("USDC conversion job failed", { error: e });
         ch.nack(msg, false, true);
       }
     },
-    { noAck: false }
+    { noAck: false },
   );
-  logger.info('USDC conversion consumer started', { queue: QUEUE });
+  logger.info("USDC conversion consumer started", { queue: QUEUE });
 }
 
 /**
  * Enqueue a USDC conversion job (call from MintEvent handler).
  */
-export async function enqueueUsdcConversion(payload: UsdcConversionPayload): Promise<void> {
+export async function enqueueUsdcConversion(
+  payload: UsdcConversionPayload,
+): Promise<void> {
   const ch = await connectRabbitMQ();
   await ch.assertQueue(QUEUE, { durable: true });
-  ch.sendToQueue(QUEUE, Buffer.from(JSON.stringify(payload)), { persistent: true });
-  logger.info('USDC conversion enqueued', { txHash: payload.txHash });
+  ch.sendToQueue(QUEUE, Buffer.from(JSON.stringify(payload)), {
+    persistent: true,
+  });
+  logger.info("USDC conversion enqueued", { txHash: payload.txHash });
 }

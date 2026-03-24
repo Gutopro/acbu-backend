@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { logger } from '../config/logger';
+import { Request, Response, NextFunction } from "express";
+import { logger } from "../config/logger";
 
 export class AppError extends Error {
   statusCode: number;
@@ -17,10 +17,10 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void => {
   if (err instanceof AppError) {
-    logger.error('Application error', {
+    logger.error("Application error", {
       message: err.message,
       statusCode: err.statusCode,
       path: req.path,
@@ -37,7 +37,7 @@ export const errorHandler = (
   }
 
   // Unexpected errors
-  logger.error('Unexpected error', {
+  logger.error("Unexpected error", {
     error: err,
     message: err.message,
     stack: err.stack,
@@ -47,7 +47,7 @@ export const errorHandler = (
 
   res.status(500).json({
     error: {
-      message: 'Internal server error',
+      message: "Internal server error",
       statusCode: 500,
     },
   });

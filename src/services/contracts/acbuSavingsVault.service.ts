@@ -1,5 +1,5 @@
-import { contractClient, ContractClient } from '../stellar/contractClient';
-import { stellarClient } from '../stellar/client';
+import { contractClient, ContractClient } from "../stellar/contractClient";
+import { stellarClient } from "../stellar/client";
 
 export interface DepositParams {
   user: string; // Stellar address
@@ -22,9 +22,11 @@ export class SavingsVaultService {
     this.contractClient = contractClient;
   }
 
-  async deposit(params: DepositParams): Promise<{ transactionHash: string; newBalance: string }> {
+  async deposit(
+    params: DepositParams,
+  ): Promise<{ transactionHash: string; newBalance: string }> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
-    if (!sourceAccount) throw new Error('No source account available');
+    if (!sourceAccount) throw new Error("No source account available");
 
     const args = [
       ContractClient.toScVal(params.user),
@@ -33,7 +35,7 @@ export class SavingsVaultService {
     ];
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
-      functionName: 'deposit',
+      functionName: "deposit",
       args,
       sourceAccount,
     });
@@ -46,7 +48,7 @@ export class SavingsVaultService {
 
   async withdraw(params: WithdrawParams): Promise<string> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
-    if (!sourceAccount) throw new Error('No source account available');
+    if (!sourceAccount) throw new Error("No source account available");
 
     const args = [
       ContractClient.toScVal(params.user),
@@ -55,7 +57,7 @@ export class SavingsVaultService {
     ];
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
-      functionName: 'withdraw',
+      functionName: "withdraw",
       args,
       sourceAccount,
     });
@@ -65,8 +67,8 @@ export class SavingsVaultService {
   async getBalance(user: string, termSeconds: number): Promise<string> {
     const result = await this.contractClient.readContract(
       this.contractId,
-      'get_balance',
-      [ContractClient.toScVal(user), ContractClient.toScVal(termSeconds)]
+      "get_balance",
+      [ContractClient.toScVal(user), ContractClient.toScVal(termSeconds)],
     );
     const balance = ContractClient.fromScVal(result);
     return balance.toString();
@@ -75,8 +77,8 @@ export class SavingsVaultService {
   async isPaused(): Promise<boolean> {
     const result = await this.contractClient.readContract(
       this.contractId,
-      'is_paused',
-      []
+      "is_paused",
+      [],
     );
     return ContractClient.fromScVal(result) as boolean;
   }

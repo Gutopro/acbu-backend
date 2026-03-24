@@ -1,6 +1,6 @@
-import { contractClient, ContractClient } from '../stellar/contractClient';
-import { stellarClient } from '../stellar/client';
-import { logger } from '../../config/logger';
+import { contractClient, ContractClient } from "../stellar/contractClient";
+import { stellarClient } from "../stellar/client";
+import { logger } from "../../config/logger";
 
 export interface BurnForCurrencyParams {
   acbuAmount: string; // Amount in smallest unit (7 decimals)
@@ -39,11 +39,11 @@ export class BurningService {
     localAmount: string;
   }> {
     try {
-      logger.info('Burning ACBU for currency', params);
+      logger.info("Burning ACBU for currency", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       // Build function arguments
@@ -61,7 +61,7 @@ export class BurningService {
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'burn_for_currency',
+        functionName: "burn_for_currency",
         args,
         sourceAccount,
       });
@@ -69,7 +69,7 @@ export class BurningService {
       // Parse result (local currency amount)
       const localAmount = ContractClient.fromScVal(result.result);
 
-      logger.info('Burning successful', {
+      logger.info("Burning successful", {
         transactionHash: result.transactionHash,
         localAmount: localAmount.toString(),
       });
@@ -79,7 +79,7 @@ export class BurningService {
         localAmount: localAmount.toString(),
       };
     } catch (error) {
-      logger.error('Failed to burn for currency', { params, error });
+      logger.error("Failed to burn for currency", { params, error });
       throw error;
     }
   }
@@ -92,11 +92,11 @@ export class BurningService {
     localAmounts: string[];
   }> {
     try {
-      logger.info('Burning ACBU for basket', params);
+      logger.info("Burning ACBU for basket", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       // Build recipient accounts array
@@ -116,7 +116,7 @@ export class BurningService {
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'burn_for_basket',
+        functionName: "burn_for_basket",
         args,
         sourceAccount,
       });
@@ -124,7 +124,7 @@ export class BurningService {
       // Parse result (array of local amounts)
       const localAmounts = ContractClient.fromScVal(result.result) as any[];
 
-      logger.info('Basket burning successful', {
+      logger.info("Basket burning successful", {
         transactionHash: result.transactionHash,
         localAmounts: localAmounts.map((a) => a.toString()),
       });
@@ -134,7 +134,7 @@ export class BurningService {
         localAmounts: localAmounts.map((a) => a.toString()),
       };
     } catch (error) {
-      logger.error('Failed to burn for basket', { params, error });
+      logger.error("Failed to burn for basket", { params, error });
       throw error;
     }
   }
@@ -146,14 +146,14 @@ export class BurningService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_fee_rate',
-        []
+        "get_fee_rate",
+        [],
       );
 
       const feeRate = ContractClient.fromScVal(result);
       return Number(feeRate);
     } catch (error) {
-      logger.error('Failed to get fee rate', { error });
+      logger.error("Failed to get fee rate", { error });
       throw error;
     }
   }
@@ -165,13 +165,13 @@ export class BurningService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'is_paused',
-        []
+        "is_paused",
+        [],
       );
 
       return ContractClient.fromScVal(result) as boolean;
     } catch (error) {
-      logger.error('Failed to check pause status', { error });
+      logger.error("Failed to check pause status", { error });
       throw error;
     }
   }

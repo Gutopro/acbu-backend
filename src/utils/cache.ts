@@ -1,7 +1,7 @@
-import { getMongoDB } from '../config/mongodb';
-import { logger } from '../config/logger';
+import { getMongoDB } from "../config/mongodb";
+import { logger } from "../config/logger";
 
-const CACHE_COLLECTION = 'cache';
+const CACHE_COLLECTION = "cache";
 const DEFAULT_TTL = 3600; // 1 hour in seconds
 
 export interface CacheOptions {
@@ -28,7 +28,7 @@ export class CacheService {
 
       return null;
     } catch (error) {
-      logger.error('Cache get error', { key, error });
+      logger.error("Cache get error", { key, error });
       return null;
     }
   }
@@ -54,10 +54,10 @@ export class CacheService {
             updatedAt: new Date(),
           },
         },
-        { upsert: true }
+        { upsert: true },
       );
     } catch (error) {
-      logger.error('Cache set error', { key, error });
+      logger.error("Cache set error", { key, error });
     }
   }
 
@@ -71,7 +71,7 @@ export class CacheService {
 
       await collection.deleteOne({ key });
     } catch (error) {
-      logger.error('Cache delete error', { key, error });
+      logger.error("Cache delete error", { key, error });
     }
   }
 
@@ -86,7 +86,7 @@ export class CacheService {
       const regex = new RegExp(pattern);
       await collection.deleteMany({ key: { $regex: regex } });
     } catch (error) {
-      logger.error('Cache delete pattern error', { pattern, error });
+      logger.error("Cache delete pattern error", { pattern, error });
     }
   }
 
@@ -100,7 +100,7 @@ export class CacheService {
 
       await collection.deleteMany({ expiresAt: { $lt: new Date() } });
     } catch (error) {
-      logger.error('Cache clear expired error', { error });
+      logger.error("Cache clear expired error", { error });
     }
   }
 }

@@ -1,10 +1,10 @@
-import { Router, type IRouter } from 'express';
-import { burnAcbu } from '../controllers/burnController';
-import { validateApiKey } from '../middleware/auth';
-import { apiKeyRateLimiter } from '../middleware/rateLimiter';
+import { Router, type IRouter } from "express";
+import { burnAcbu } from "../controllers/burnController";
+import { validateApiKey } from "../middleware/auth";
+import { apiKeyRateLimiter } from "../middleware/rateLimiter";
 
 const router: IRouter = Router();
 router.use(validateApiKey);
 router.use(apiKeyRateLimiter);
-router.post('/acbu', burnAcbu);
+router.post("/acbu", burnAcbu);
 export default router;

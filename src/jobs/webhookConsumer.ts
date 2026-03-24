@@ -1,10 +1,10 @@
 /**
  * Consumes WEBHOOKS queue: deliver outbound webhooks with HMAC-SHA256 signature and retries.
  */
-import type { ConsumeMessage } from 'amqplib';
-import { connectRabbitMQ, QUEUES } from '../config/rabbitmq';
-import { logger } from '../config/logger';
-import { deliverWebhook } from '../services/webhook';
+import type { ConsumeMessage } from "amqplib";
+import { connectRabbitMQ, QUEUES } from "../config/rabbitmq";
+import { logger } from "../config/logger";
+import { deliverWebhook } from "../services/webhook";
 
 interface WebhookJobPayload {
   webhookId: string;
@@ -32,11 +32,11 @@ export async function startWebhookConsumer(): Promise<void> {
           ch.nack(msg, false, true);
         }
       } catch (e) {
-        logger.error('Webhook consumer error', { error: e });
+        logger.error("Webhook consumer error", { error: e });
         ch.nack(msg, false, true);
       }
     },
-    { noAck: false }
+    { noAck: false },
   );
-  logger.info('Webhook consumer started', { queue: QUEUES.WEBHOOKS });
+  logger.info("Webhook consumer started", { queue: QUEUES.WEBHOOKS });
 }

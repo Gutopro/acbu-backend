@@ -4,8 +4,8 @@
  */
 
 /** Day-of-month (1–31) when savings withdrawals are locked. Default: 1 and 15. */
-export const SAVINGS_LOCK_DAYS = (process.env.SAVINGS_LOCK_DAYS || '1,15')
-  .split(',')
+export const SAVINGS_LOCK_DAYS = (process.env.SAVINGS_LOCK_DAYS || "1,15")
+  .split(",")
   .map((s) => parseInt(s.trim(), 10))
   .filter((d) => d >= 1 && d <= 31);
 
@@ -56,6 +56,10 @@ export function getApyForTerm(termSeconds: number): number {
 }
 
 /** Accrued yield = principal * (apy/100) * (daysLocked/365). */
-export function computeAccruedYield(principal: number, apy: number, daysLocked: number): number {
+export function computeAccruedYield(
+  principal: number,
+  apy: number,
+  daysLocked: number,
+): number {
   return (principal * (apy / 100) * daysLocked) / 365;
 }

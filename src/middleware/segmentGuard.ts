@@ -1,36 +1,36 @@
-import { Response, NextFunction } from 'express';
-import { AppError } from './errorHandler';
-import type { AuthRequest } from './auth';
+import { Response, NextFunction } from "express";
+import { AppError } from "./errorHandler";
+import type { AuthRequest } from "./auth";
 
 /**
  * Segment scopes: p2p, sme, international, salary, enterprise, savings, lending, bills, gateway, payroll.
  * Each segment can have :read and :write (e.g. p2p:read, p2p:write).
  */
 export const SEGMENT_SCOPES = [
-  'p2p:read',
-  'p2p:write',
-  'sme:read',
-  'sme:write',
-  'international:read',
-  'international:write',
-  'salary:read',
-  'salary:write',
-  'enterprise:read',
-  'enterprise:write',
-  'savings:read',
-  'savings:write',
-  'lending:read',
-  'lending:write',
-  'bills:read',
-  'bills:write',
-  'gateway:read',
-  'gateway:write',
-  'payroll:read',
-  'payroll:write',
-  'government:read',
-  'government:write',
-  'investment:read',
-  'investment:write',
+  "p2p:read",
+  "p2p:write",
+  "sme:read",
+  "sme:write",
+  "international:read",
+  "international:write",
+  "salary:read",
+  "salary:write",
+  "enterprise:read",
+  "enterprise:write",
+  "savings:read",
+  "savings:write",
+  "lending:read",
+  "lending:write",
+  "bills:read",
+  "bills:write",
+  "gateway:read",
+  "gateway:write",
+  "payroll:read",
+  "payroll:write",
+  "government:read",
+  "government:write",
+  "investment:read",
+  "investment:write",
 ] as const;
 
 export type SegmentScope = (typeof SEGMENT_SCOPES)[number];
@@ -42,7 +42,7 @@ export type SegmentScope = (typeof SEGMENT_SCOPES)[number];
 export function requireSegmentScope(...scopes: SegmentScope[]) {
   return (req: AuthRequest, _res: Response, next: NextFunction): void => {
     if (!req.apiKey) {
-      next(new AppError('API key required', 401));
+      next(new AppError("API key required", 401));
       return;
     }
     const permissions = req.apiKey.permissions || [];
@@ -50,9 +50,9 @@ export function requireSegmentScope(...scopes: SegmentScope[]) {
     if (!hasScope) {
       next(
         new AppError(
-          `Missing segment scope. Required one of: ${scopes.join(', ')}`,
-          403
-        )
+          `Missing segment scope. Required one of: ${scopes.join(", ")}`,
+          403,
+        ),
       );
       return;
     }
@@ -64,7 +64,7 @@ export function requireSegmentScope(...scopes: SegmentScope[]) {
  * Require a minimum tier (free < verified < sme < enterprise).
  * Use after validateApiKey when user is loaded. Denies with 403 if tier is insufficient.
  */
-export const TIER_ORDER = ['free', 'verified', 'sme', 'enterprise'] as const;
+export const TIER_ORDER = ["free", "verified", "sme", "enterprise"] as const;
 
 export function requireMinTier(minTier: (typeof TIER_ORDER)[number]) {
   return (req: AuthRequest, _res: Response, next: NextFunction): void => {
@@ -77,10 +77,7 @@ export function requireMinTier(minTier: (typeof TIER_ORDER)[number]) {
     const minIdx = TIER_ORDER.indexOf(minTier);
     if (tierIdx < minIdx) {
       next(
-        new AppError(
-          `Insufficient tier. Required at least: ${minTier}`,
-          403
-        )
+        new AppError(`Insufficient tier. Required at least: ${minTier}`, 403),
       );
       return;
     }

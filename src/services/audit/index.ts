@@ -1,1 +1,1 @@
-export { logAudit, type AuditEntry } from './auditService';
+export { logAudit, type AuditEntry } from "./auditService";

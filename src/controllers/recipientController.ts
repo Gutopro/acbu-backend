@@ -1,7 +1,7 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import { resolveRecipient } from '../services/recipient/recipientResolver';
-import { AppError } from '../middleware/errorHandler';
+import { Response, NextFunction } from "express";
+import { AuthRequest } from "../middleware/auth";
+import { resolveRecipient } from "../services/recipient/recipientResolver";
+import { AppError } from "../middleware/errorHandler";
 
 /**
  * GET /recipient?q=@jane | +2348012345678 | email@example.com
@@ -10,20 +10,20 @@ import { AppError } from '../middleware/errorHandler';
 export async function getRecipient(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const userId = req.apiKey?.userId ?? null;
     if (!userId) {
-      throw new AppError('User-scoped API key required', 401);
+      throw new AppError("User-scoped API key required", 401);
     }
     const q = req.query.q;
-    if (typeof q !== 'string' || !q.trim()) {
+    if (typeof q !== "string" || !q.trim()) {
       throw new AppError('Query parameter "q" is required', 400);
     }
     const result = await resolveRecipient(q.trim(), userId);
     if (!result) {
-      throw new AppError('Recipient not found', 404);
+      throw new AppError("Recipient not found", 404);
     }
     res.json(result);
   } catch (e) {

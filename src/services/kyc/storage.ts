@@ -7,9 +7,9 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   type S3ClientConfig,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { config } from '../../config/env';
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { config } from "../../config/env";
 
 const BUCKET = config.kyc.objectStoreBucket;
 const REGION = config.kyc.objectStoreRegion;
@@ -17,7 +17,7 @@ const ENDPOINT = config.kyc.objectStoreEndpoint || undefined;
 const DEFAULT_EXPIRES = 3600; // 1 hour
 
 function createClient(): S3Client | null {
-  if (!BUCKET || BUCKET === 'kyc-documents') {
+  if (!BUCKET || BUCKET === "kyc-documents") {
     // Default bucket name is set even when not configured; treat as "not configured" if
     // no explicit override and no AWS credentials
     const hasCreds =
@@ -39,7 +39,7 @@ function getClient(): S3Client {
   if (_client === undefined) _client = createClient();
   if (_client === null) {
     throw new Error(
-      'KYC object store not configured. Set KYC_OBJECT_STORE_BUCKET and AWS credentials (or KYC_OBJECT_STORE_ENDPOINT for MinIO). See ENV_VARS.md.'
+      "KYC object store not configured. Set KYC_OBJECT_STORE_BUCKET and AWS credentials (or KYC_OBJECT_STORE_ENDPOINT for MinIO). See ENV_VARS.md.",
     );
   }
   return _client;
@@ -48,7 +48,11 @@ function getClient(): S3Client {
 /**
  * Build object key for a KYC document.
  */
-export function documentKey(applicationId: string, kind: string, ext = 'bin'): string {
+export function documentKey(
+  applicationId: string,
+  kind: string,
+  ext = "bin",
+): string {
   return `kyc/${applicationId}/${kind}.${ext}`;
 }
 
@@ -58,7 +62,7 @@ export function documentKey(applicationId: string, kind: string, ext = 'bin'): s
 export async function getPresignedUploadUrl(
   key: string,
   contentType?: string,
-  expiresIn = DEFAULT_EXPIRES
+  expiresIn = DEFAULT_EXPIRES,
 ): Promise<{ url: string; key: string }> {
   const client = getClient();
   const command = new PutObjectCommand({
@@ -73,7 +77,10 @@ export async function getPresignedUploadUrl(
 /**
  * Get a presigned GET URL for secure download (e.g. redacted asset for validators).
  */
-export async function getPresignedDownloadUrl(key: string, expiresIn = DEFAULT_EXPIRES): Promise<string> {
+export async function getPresignedDownloadUrl(
+  key: string,
+  expiresIn = DEFAULT_EXPIRES,
+): Promise<string> {
   const client = getClient();
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return getSignedUrl(client, command, { expiresIn });
@@ -82,7 +89,11 @@ export async function getPresignedDownloadUrl(key: string, expiresIn = DEFAULT_E
 /**
  * Server-side upload. Use when the backend has the buffer (e.g. after processing).
  */
-export async function put(key: string, body: Buffer, contentType?: string): Promise<void> {
+export async function put(
+  key: string,
+  body: Buffer,
+  contentType?: string,
+): Promise<void> {
   const client = getClient();
   await client.send(
     new PutObjectCommand({
@@ -90,7 +101,7 @@ export async function put(key: string, body: Buffer, contentType?: string): Prom
       Key: key,
       Body: body,
       ...(contentType && { ContentType: contentType }),
-    })
+    }),
   );
 }
 

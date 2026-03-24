@@ -1,7 +1,10 @@
-import { Router, type IRouter } from 'express';
-import { getReserveStatus, trackReserves } from '../controllers/reserveController';
-import { validateApiKey } from '../middleware/auth';
-import { apiKeyRateLimiter } from '../middleware/rateLimiter';
+import { Router, type IRouter } from "express";
+import {
+  getReserveStatus,
+  trackReserves,
+} from "../controllers/reserveController";
+import { validateApiKey } from "../middleware/auth";
+import { apiKeyRateLimiter } from "../middleware/rateLimiter";
 
 const router: IRouter = Router();
 
@@ -9,7 +12,7 @@ const router: IRouter = Router();
 router.use(validateApiKey);
 router.use(apiKeyRateLimiter);
 
-router.get('/', getReserveStatus);
-router.post('/track', trackReserves);
+router.get("/", getReserveStatus);
+router.post("/track", trackReserves);
 
 export default router;

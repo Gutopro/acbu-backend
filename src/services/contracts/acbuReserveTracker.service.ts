@@ -1,6 +1,6 @@
-import { contractClient, ContractClient } from '../stellar/contractClient';
-import { stellarClient } from '../stellar/client';
-import { logger } from '../../config/logger';
+import { contractClient, ContractClient } from "../stellar/contractClient";
+import { stellarClient } from "../stellar/client";
+import { logger } from "../../config/logger";
 
 export interface UpdateReserveParams {
   currency: string; // Currency code (NGN, KES, RWF)
@@ -29,11 +29,11 @@ export class ReserveTrackerService {
    */
   async updateReserve(params: UpdateReserveParams): Promise<string> {
     try {
-      logger.info('Updating reserve', params);
+      logger.info("Updating reserve", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
-        throw new Error('No source account available');
+        throw new Error("No source account available");
       }
 
       // Build function arguments (contract expects currency, amount: i128, value_usd: i128)
@@ -48,19 +48,19 @@ export class ReserveTrackerService {
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: 'update_reserve',
+        functionName: "update_reserve",
         args,
         sourceAccount,
       });
 
-      logger.info('Reserve update successful', {
+      logger.info("Reserve update successful", {
         transactionHash: result.transactionHash,
         currency: params.currency,
       });
 
       return result.transactionHash;
     } catch (error) {
-      logger.error('Failed to update reserve', { params, error });
+      logger.error("Failed to update reserve", { params, error });
       throw error;
     }
   }
@@ -72,8 +72,8 @@ export class ReserveTrackerService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_reserve',
-        [ContractClient.toScVal(currency)]
+        "get_reserve",
+        [ContractClient.toScVal(currency)],
       );
 
       const reserveData = ContractClient.fromScVal(result) as any;
@@ -84,7 +84,7 @@ export class ReserveTrackerService {
         timestamp: Number(reserveData.timestamp),
       };
     } catch (error) {
-      logger.error('Failed to get reserve', { currency, error });
+      logger.error("Failed to get reserve", { currency, error });
       throw error;
     }
   }
@@ -96,13 +96,13 @@ export class ReserveTrackerService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'verify_reserves',
-        []
+        "verify_reserves",
+        [],
       );
 
       return ContractClient.fromScVal(result) as boolean;
     } catch (error) {
-      logger.error('Failed to verify reserves', { error });
+      logger.error("Failed to verify reserves", { error });
       throw error;
     }
   }
@@ -114,14 +114,14 @@ export class ReserveTrackerService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_total_reserve_value',
-        []
+        "get_total_reserve_value",
+        [],
       );
 
       const totalValue = ContractClient.fromScVal(result);
       return totalValue.toString();
     } catch (error) {
-      logger.error('Failed to get total reserve value', { error });
+      logger.error("Failed to get total reserve value", { error });
       throw error;
     }
   }
@@ -133,14 +133,14 @@ export class ReserveTrackerService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_min_ratio',
-        []
+        "get_min_ratio",
+        [],
       );
 
       const minRatio = ContractClient.fromScVal(result);
       return Number(minRatio) / 10000; // Convert from basis points to decimal
     } catch (error) {
-      logger.error('Failed to get min ratio', { error });
+      logger.error("Failed to get min ratio", { error });
       throw error;
     }
   }
@@ -152,14 +152,14 @@ export class ReserveTrackerService {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
-        'get_target_ratio',
-        []
+        "get_target_ratio",
+        [],
       );
 
       const targetRatio = ContractClient.fromScVal(result);
       return Number(targetRatio) / 10000; // Convert from basis points to decimal
     } catch (error) {
-      logger.error('Failed to get target ratio', { error });
+      logger.error("Failed to get target ratio", { error });
       throw error;
     }
   }

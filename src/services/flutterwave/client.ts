@@ -1,12 +1,12 @@
-import axios, { AxiosInstance } from 'axios';
-import { config } from '../../config/env';
-import { logger } from '../../config/logger';
+import axios, { AxiosInstance } from "axios";
+import { config } from "../../config/env";
+import { logger } from "../../config/logger";
 import type {
   FintechProvider,
   DisburseRecipient,
   ConvertCurrencyResult,
   DisburseResult,
-} from '../fintech/types';
+} from "../fintech/types";
 
 export class FlutterwaveClient implements FintechProvider {
   private client: AxiosInstance;
@@ -16,7 +16,7 @@ export class FlutterwaveClient implements FintechProvider {
       baseURL: config.flutterwave.baseUrl,
       headers: {
         Authorization: `Bearer ${config.flutterwave.secretKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       timeout: 30000,
     });
@@ -24,35 +24,35 @@ export class FlutterwaveClient implements FintechProvider {
     // Request interceptor
     this.client.interceptors.request.use(
       (requestConfig) => {
-        logger.debug('Flutterwave API Request', {
+        logger.debug("Flutterwave API Request", {
           method: requestConfig.method,
           url: requestConfig.url,
         });
         return requestConfig;
       },
       (error) => {
-        logger.error('Flutterwave API Request Error', error);
+        logger.error("Flutterwave API Request Error", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        logger.debug('Flutterwave API Response', {
+        logger.debug("Flutterwave API Response", {
           status: response.status,
           url: response.config.url,
         });
         return response;
       },
       (error) => {
-        logger.error('Flutterwave API Response Error', {
+        logger.error("Flutterwave API Response Error", {
           status: error.response?.status,
           message: error.response?.data?.message || error.message,
           url: error.config?.url,
         });
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -66,7 +66,10 @@ export class FlutterwaveClient implements FintechProvider {
       const response = await this.client.get(`/balances/${currency}`);
       return parseFloat(response.data.data.balance);
     } catch (error) {
-      logger.error('Failed to get balance from Flutterwave', { currency, error });
+      logger.error("Failed to get balance from Flutterwave", {
+        currency,
+        error,
+      });
       throw error;
     }
   }
@@ -77,10 +80,10 @@ export class FlutterwaveClient implements FintechProvider {
   async convertCurrency(
     amount: number,
     fromCurrency: string,
-    toCurrency: string
+    toCurrency: string,
   ): Promise<ConvertCurrencyResult> {
     try {
-      const response = await this.client.post('/currency/conversions', {
+      const response = await this.client.post("/currency/conversions", {
         amount,
         from: fromCurrency,
         to: toCurrency,
@@ -90,7 +93,7 @@ export class FlutterwaveClient implements FintechProvider {
         rate: parseFloat(response.data.data.rate),
       };
     } catch (error) {
-      logger.error('Failed to convert currency via Flutterwave', {
+      logger.error("Failed to convert currency via Flutterwave", {
         amount,
         fromCurrency,
         toCurrency,
@@ -106,15 +109,15 @@ export class FlutterwaveClient implements FintechProvider {
   async disburseFunds(
     amount: number,
     currency: string,
-    recipient: DisburseRecipient
+    recipient: DisburseRecipient,
   ): Promise<DisburseResult> {
     try {
-      const response = await this.client.post('/transfers', {
+      const response = await this.client.post("/transfers", {
         account_bank: recipient.bankCode,
         account_number: recipient.accountNumber,
         amount,
         currency,
-        narration: 'ACBU withdrawal',
+        narration: "ACBU withdrawal",
         beneficiary_name: recipient.accountName,
       });
 
@@ -123,7 +126,7 @@ export class FlutterwaveClient implements FintechProvider {
         status: response.data.data.status,
       };
     } catch (error) {
-      logger.error('Failed to disburse funds via Flutterwave', {
+      logger.error("Failed to disburse funds via Flutterwave", {
         amount,
         currency,
         recipient,

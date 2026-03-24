@@ -1,11 +1,18 @@
-import { Horizon, Keypair, TransactionBuilder, Operation } from 'stellar-sdk';
-import { config } from '../../config/env';
-import { logger } from '../../config/logger';
+import {
+  Horizon,
+  Keypair,
+  TransactionBuilder,
+  Operation,
+  Transaction,
+  FeeBumpTransaction,
+} from "stellar-sdk";
+import { config } from "../../config/env";
+import { logger } from "../../config/logger";
 
 const Server = Horizon.Server;
 
 export interface StellarNetworkConfig {
-  network: 'testnet' | 'mainnet';
+  network: "testnet" | "mainnet";
   horizonUrl: string;
   networkPassphrase: string;
   secretKey?: string;
@@ -15,18 +22,20 @@ export type StellarServer = InstanceType<typeof Server>;
 
 export class StellarClient {
   private server: StellarServer;
-  private network: 'testnet' | 'mainnet';
+  private network: "testnet" | "mainnet";
   private networkPassphrase: string;
   private keypair: Keypair | null = null;
 
   constructor(cfg?: Partial<StellarNetworkConfig>) {
-    const network = (cfg?.network ?? config.stellar.network) as 'testnet' | 'mainnet';
+    const network = (cfg?.network ?? config.stellar.network) as
+      | "testnet"
+      | "mainnet";
     const horizonUrl = cfg?.horizonUrl ?? config.stellar.horizonUrl;
     const networkPassphrase =
       cfg?.networkPassphrase ??
-      (network === 'testnet'
-        ? 'Test SDF Network ; September 2015'
-        : 'Public Global Stellar Network ; September 2015');
+      (network === "testnet"
+        ? "Test SDF Network ; September 2015"
+        : "Public Global Stellar Network ; September 2015");
 
     this.network = network;
     this.networkPassphrase = networkPassphrase;
@@ -37,13 +46,13 @@ export class StellarClient {
     if (secretKey) {
       try {
         this.keypair = Keypair.fromSecret(secretKey);
-        logger.info('Stellar keypair initialized', {
+        logger.info("Stellar keypair initialized", {
           publicKey: this.keypair.publicKey(),
           network,
         });
       } catch (error) {
-        logger.error('Failed to initialize Stellar keypair', { error });
-        throw new Error('Invalid Stellar secret key');
+        logger.error("Failed to initialize Stellar keypair", { error });
+        throw new Error("Invalid Stellar secret key");
       }
     }
   }
@@ -58,7 +67,7 @@ export class StellarClient {
   /**
    * Get the current network
    */
-  getNetwork(): 'testnet' | 'mainnet' {
+  getNetwork(): "testnet" | "mainnet" {
     return this.network;
   }
 
@@ -84,7 +93,7 @@ export class StellarClient {
       const account = await this.server.loadAccount(accountId);
       return account;
     } catch (error) {
-      logger.error('Failed to load account', { accountId, error });
+      logger.error("Failed to load account", { accountId, error });
       throw error;
     }
   }
@@ -98,17 +107,21 @@ export class StellarClient {
     options?: {
       fee?: string;
       timebounds?: { minTime: number; maxTime: number };
-    }
+    },
   ) {
     try {
       const sourceAccount = await this.getAccount(sourceAccountId);
       const builder = new TransactionBuilder(sourceAccount, {
-        fee: options?.fee || '100',
+        fee: options?.fee || "100",
         networkPassphrase: this.networkPassphrase,
         timebounds: options?.timebounds,
       });
 
-      operations.forEach((op) => builder.addOperation(op as unknown as Parameters<typeof builder.addOperation>[0]));
+      operations.forEach((op) =>
+        builder.addOperation(
+          op as unknown as Parameters<typeof builder.addOperation>[0],
+        ),
+      );
 
       const transaction = builder.build();
 
@@ -119,7 +132,7 @@ export class StellarClient {
 
       return transaction;
     } catch (error) {
-      logger.error('Failed to build transaction', { sourceAccountId, error });
+      logger.error("Failed to build transaction", { sourceAccountId, error });
       throw error;
     }
   }
@@ -127,16 +140,16 @@ export class StellarClient {
   /**
    * Submit a transaction
    */
-  async submitTransaction(transaction: any) {
+  async submitTransaction(transaction: Transaction | FeeBumpTransaction) {
     try {
       const result = await this.server.submitTransaction(transaction);
-      logger.info('Transaction submitted', {
+      logger.info("Transaction submitted", {
         hash: result.hash,
         ledger: result.ledger,
       });
       return result;
     } catch (error: any) {
-      logger.error('Failed to submit transaction', {
+      logger.error("Failed to submit transaction", {
         error: error.message,
         extras: error.response?.data?.extras,
       });
@@ -149,10 +162,13 @@ export class StellarClient {
    */
   async getTransaction(transactionHash: string) {
     try {
-      const transaction = await this.server.transactions().transaction(transactionHash).call();
+      const transaction = await this.server
+        .transactions()
+        .transaction(transactionHash)
+        .call();
       return transaction;
     } catch (error) {
-      logger.error('Failed to get transaction', { transactionHash, error });
+      logger.error("Failed to get transaction", { transactionHash, error });
       throw error;
     }
   }
@@ -160,20 +176,30 @@ export class StellarClient {
   /**
    * Get account balance for an asset
    */
-  async getBalance(accountId: string, assetCode?: string, assetIssuer?: string) {
+  async getBalance(
+    accountId: string,
+    assetCode?: string,
+    assetIssuer?: string,
+  ) {
     try {
       const account = await this.getAccount(accountId);
-      if (!assetCode || assetCode === 'XLM') {
-        const xlmBalance = account.balances.find((b: any) => b.asset_type === 'native');
+      if (!assetCode || assetCode === "XLM") {
+        const xlmBalance = account.balances.find(
+          (b) => b.asset_type === "native",
+        );
         return xlmBalance ? parseFloat(xlmBalance.balance) : 0;
       }
 
       const assetBalance = account.balances.find(
-        (b: any) => b.asset_code === assetCode && b.asset_issuer === assetIssuer
+        (b) =>
+          "asset_code" in b &&
+          b.asset_code === assetCode &&
+          "asset_issuer" in b &&
+          b.asset_issuer === assetIssuer,
       );
       return assetBalance ? parseFloat(assetBalance.balance) : 0;
     } catch (error) {
-      logger.error('Failed to get balance', { accountId, assetCode, error });
+      logger.error("Failed to get balance", { accountId, assetCode, error });
       throw error;
     }
   }
@@ -207,7 +233,7 @@ export class StellarClient {
 
 // Export singleton instance
 export const stellarClient = new StellarClient({
-  network: config.stellar.network as 'testnet' | 'mainnet',
+  network: config.stellar.network as "testnet" | "mainnet",
   horizonUrl: config.stellar.horizonUrl,
   secretKey: config.stellar.secretKey,
 });

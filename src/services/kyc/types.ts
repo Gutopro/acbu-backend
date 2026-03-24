@@ -1,15 +1,15 @@
 export type KycApplicationStatus =
-  | 'pending'
-  | 'machine_processing'
-  | 'awaiting_review'
-  | 'approved'
-  | 'rejected';
+  | "pending"
+  | "machine_processing"
+  | "awaiting_review"
+  | "approved"
+  | "rejected";
 
-export type KycDocumentKind = 'id_front' | 'id_back' | 'selfie';
+export type KycDocumentKind = "id_front" | "id_back" | "selfie";
 
-export type KycValidatorStatus = 'active' | 'suspended' | 'removed';
+export type KycValidatorStatus = "active" | "suspended" | "removed";
 
-export type KycValidationResult = 'approve' | 'reject';
+export type KycValidationResult = "approve" | "reject";
 
 export interface CreateKycApplicationInput {
   userId: string;
@@ -18,7 +18,12 @@ export interface CreateKycApplicationInput {
   feeTxHash?: string;
   /** Mint transaction id — user deposited local currency, we minted ACBU; that mint covers the fee. */
   feeMintTransactionId?: string;
-  documents: { kind: KycDocumentKind; storageRef: string; checksum?: string; mimeType?: string }[]; // may be empty; add via addDocumentsAndEnqueue later
+  documents: {
+    kind: KycDocumentKind;
+    storageRef: string;
+    checksum?: string;
+    mimeType?: string;
+  }[]; // may be empty; add via addDocumentsAndEnqueue later
 }
 
 export interface MachineExtractedPayload {

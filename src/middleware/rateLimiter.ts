@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
-import { config } from '../config/env';
-import { AuthRequest } from './auth';
-import { cacheService } from '../utils/cache';
+import { Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
+import { config } from "../config/env";
+import { AuthRequest } from "./auth";
+import { cacheService } from "../utils/cache";
 
 /**
  * Create rate limiter based on API key or IP
@@ -11,14 +11,14 @@ export const createRateLimiter = (windowMs: number, maxRequests: number) => {
   return rateLimit({
     windowMs,
     max: maxRequests,
-    message: 'Too many requests from this IP, please try again later.',
+    message: "Too many requests from this IP, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
     handler: (_req: Request, res: Response) => {
       res.status(429).json({
         error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many requests, please try again later.',
+          code: "RATE_LIMIT_EXCEEDED",
+          message: "Too many requests, please try again later.",
         },
       });
     },
@@ -31,14 +31,16 @@ export const createRateLimiter = (windowMs: number, maxRequests: number) => {
 export const apiKeyRateLimiter = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   if (!req.apiKey) {
     return next();
   }
 
   const cacheKey = `rate_limit:api_key:${req.apiKey.id}`;
-  const cached = await cacheService.get<{ count: number; resetAt: number }>(cacheKey);
+  const cached = await cacheService.get<{ count: number; resetAt: number }>(
+    cacheKey,
+  );
 
   const now = Date.now();
   const windowMs = config.rateLimitWindowMs;
@@ -49,18 +51,29 @@ export const apiKeyRateLimiter = async (
       if (cached.count >= maxRequests) {
         res.status(429).json({
           error: {
-            code: 'RATE_LIMIT_EXCEEDED',
-            message: 'API key rate limit exceeded',
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "API key rate limit exceeded",
           },
         });
         return;
       }
-      await cacheService.set(cacheKey, { count: cached.count + 1, resetAt: cached.resetAt });
+      await cacheService.set(cacheKey, {
+        count: cached.count + 1,
+        resetAt: cached.resetAt,
+      });
     } else {
-      await cacheService.set(cacheKey, { count: 1, resetAt: now + windowMs }, { ttl: windowMs / 1000 });
+      await cacheService.set(
+        cacheKey,
+        { count: 1, resetAt: now + windowMs },
+        { ttl: windowMs / 1000 },
+      );
     }
   } else {
-    await cacheService.set(cacheKey, { count: 1, resetAt: now + windowMs }, { ttl: windowMs / 1000 });
+    await cacheService.set(
+      cacheKey,
+      { count: 1, resetAt: now + windowMs },
+      { ttl: windowMs / 1000 },
+    );
   }
 
   next();
@@ -71,5 +84,5 @@ export const apiKeyRateLimiter = async (
  */
 export const standardRateLimiter = createRateLimiter(
   config.rateLimitWindowMs,
-  config.rateLimitMaxRequests
+  config.rateLimitMaxRequests,
 );

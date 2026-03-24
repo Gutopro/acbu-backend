@@ -1,5 +1,5 @@
-import { stellarClient } from './client';
-import { logger } from '../../config/logger';
+import { stellarClient } from "./client";
+import { logger } from "../../config/logger";
 
 export interface ContractEvent {
   contractId: string;
@@ -31,7 +31,7 @@ export class EventListener {
       this.eventHandlers.set(eventType, []);
     }
     this.eventHandlers.get(eventType)!.push(handler);
-    logger.info('Event handler registered', { eventType });
+    logger.info("Event handler registered", { eventType });
   }
 
   /**
@@ -43,7 +43,7 @@ export class EventListener {
       const index = handlers.indexOf(handler);
       if (index > -1) {
         handlers.splice(index, 1);
-        logger.info('Event handler removed', { eventType });
+        logger.info("Event handler removed", { eventType });
       }
     }
   }
@@ -53,13 +53,13 @@ export class EventListener {
    */
   async start(cursor?: string): Promise<void> {
     if (this.isListening) {
-      logger.warn('EventListener is already listening');
+      logger.warn("EventListener is already listening");
       return;
     }
 
     this.isListening = true;
     this.cursor = cursor || null;
-    logger.info('Starting event listener', { cursor: this.cursor });
+    logger.info("Starting event listener", { cursor: this.cursor });
 
     await this.listen();
   }
@@ -69,7 +69,7 @@ export class EventListener {
    */
   stop(): void {
     this.isListening = false;
-    logger.info('Stopped event listener');
+    logger.info("Stopped event listener");
   }
 
   /**
@@ -78,7 +78,7 @@ export class EventListener {
   private async listen(): Promise<void> {
     while (this.isListening) {
       try {
-        const builder = this.server.effects().order('asc').limit(200);
+        const builder = this.server.effects().order("asc").limit(200);
 
         if (this.cursor) {
           builder.cursor(this.cursor);
@@ -88,18 +88,24 @@ export class EventListener {
 
         for (const effect of effects.records) {
           // Process contract events
-          if (effect.type === 'contract' || effect.type.startsWith('contract_')) {
+          if (
+            effect.type === "contract" ||
+            effect.type.startsWith("contract_")
+          ) {
             await this.processEvent(effect);
           }
 
           // Update cursor
-          this.cursor = (effect as { paging_token?: string }).paging_token ?? (effect as { pagingToken?: () => string }).pagingToken?.() ?? '';
+          this.cursor =
+            (effect as { paging_token?: string }).paging_token ??
+            (effect as { pagingToken?: () => string }).pagingToken?.() ??
+            "";
         }
 
         // Small delay to avoid rate limiting
         await this.sleep(1000);
       } catch (error: any) {
-        logger.error('Error listening for events', {
+        logger.error("Error listening for events", {
           error: error.message,
           cursor: this.cursor,
         });
@@ -108,7 +114,7 @@ export class EventListener {
         await this.sleep(this.reconnectDelay);
         this.reconnectDelay = Math.min(
           this.reconnectDelay * 2,
-          this.maxReconnectDelay
+          this.maxReconnectDelay,
         );
       }
     }
@@ -120,7 +126,7 @@ export class EventListener {
   private async processEvent(effect: any): Promise<void> {
     try {
       const event: ContractEvent = {
-        contractId: effect.contract || '',
+        contractId: effect.contract || "",
         type: effect.type,
         data: effect,
         ledger: effect.ledger || 0,
@@ -129,20 +135,20 @@ export class EventListener {
 
       // Call handlers for this event type
       const handlers = this.eventHandlers.get(event.type) || [];
-      const allHandlers = this.eventHandlers.get('*') || [];
+      const allHandlers = this.eventHandlers.get("*") || [];
 
       for (const handler of [...handlers, ...allHandlers]) {
         try {
           await handler(event);
         } catch (error) {
-          logger.error('Error in event handler', {
+          logger.error("Error in event handler", {
             eventType: event.type,
             error,
           });
         }
       }
     } catch (error) {
-      logger.error('Error processing event', { error, effect });
+      logger.error("Error processing event", { error, effect });
     }
   }
 
@@ -152,7 +158,7 @@ export class EventListener {
   async listenToContractEvents(
     contractId: string,
     eventTypes: string[],
-    handler: EventHandler
+    handler: EventHandler,
   ): Promise<void> {
     const contractHandler: EventHandler = async (event) => {
       if (event.contractId === contractId && eventTypes.includes(event.type)) {
@@ -161,7 +167,7 @@ export class EventListener {
     };
 
     // Register handler for all events, filter in handler
-    this.on('*', contractHandler);
+    this.on("*", contractHandler);
   }
 
   /**
@@ -173,10 +179,18 @@ export class EventListener {
       fromLedger?: number;
       toLedger?: number;
       limit?: number;
-    }
+    },
   ): Promise<ContractEvent[]> {
     try {
-      const builder = (this.server.effects() as unknown as { forContract: (id: string) => { ledger: (n: number) => unknown; limit: (n: number) => unknown; call: () => Promise<{ records: unknown[] }> } }).forContract(contractId);
+      const builder = (
+        this.server.effects() as unknown as {
+          forContract: (id: string) => {
+            ledger: (n: number) => unknown;
+            limit: (n: number) => unknown;
+            call: () => Promise<{ records: unknown[] }>;
+          };
+        }
+      ).forContract(contractId);
 
       if (options?.fromLedger) {
         builder.ledger(options.fromLedger);
@@ -189,7 +203,12 @@ export class EventListener {
       const effects = await builder.call();
       const events: ContractEvent[] = [];
 
-      for (const effect of effects.records as { type: string; ledger?: number; created_at: string; [k: string]: unknown }[]) {
+      for (const effect of effects.records as {
+        type: string;
+        ledger?: number;
+        created_at: string;
+        [k: string]: unknown;
+      }[]) {
         events.push({
           contractId,
           type: effect.type,
@@ -201,7 +220,7 @@ export class EventListener {
 
       return events;
     } catch (error) {
-      logger.error('Failed to get contract events', { contractId, error });
+      logger.error("Failed to get contract events", { contractId, error });
       throw error;
     }
   }

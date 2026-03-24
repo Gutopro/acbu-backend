@@ -1,4 +1,4 @@
-import { config } from './env';
+import { config } from "./env";
 
 export interface ContractAddresses {
   oracle: string;
@@ -19,37 +19,39 @@ export const getContractAddresses = (): ContractAddresses => {
 
   // Try to load from environment variables first
   const addresses: ContractAddresses = {
-    oracle: process.env[`CONTRACT_ORACLE_${network.toUpperCase()}`] || '',
+    oracle: process.env[`CONTRACT_ORACLE_${network.toUpperCase()}`] || "",
     reserveTracker:
-      process.env[`CONTRACT_RESERVE_TRACKER_${network.toUpperCase()}`] || '',
-    minting: process.env[`CONTRACT_MINTING_${network.toUpperCase()}`] || '',
-    burning: process.env[`CONTRACT_BURNING_${network.toUpperCase()}`] || '',
-    savingsVault: process.env[`CONTRACT_SAVINGS_VAULT_${network.toUpperCase()}`] || '',
-    lendingPool: process.env[`CONTRACT_LENDING_POOL_${network.toUpperCase()}`] || '',
-    escrow: process.env[`CONTRACT_ESCROW_${network.toUpperCase()}`] || '',
+      process.env[`CONTRACT_RESERVE_TRACKER_${network.toUpperCase()}`] || "",
+    minting: process.env[`CONTRACT_MINTING_${network.toUpperCase()}`] || "",
+    burning: process.env[`CONTRACT_BURNING_${network.toUpperCase()}`] || "",
+    savingsVault:
+      process.env[`CONTRACT_SAVINGS_VAULT_${network.toUpperCase()}`] || "",
+    lendingPool:
+      process.env[`CONTRACT_LENDING_POOL_${network.toUpperCase()}`] || "",
+    escrow: process.env[`CONTRACT_ESCROW_${network.toUpperCase()}`] || "",
   };
 
   // Fallback to generic environment variables
   if (!addresses.oracle) {
-    addresses.oracle = process.env.CONTRACT_ORACLE || '';
+    addresses.oracle = process.env.CONTRACT_ORACLE || "";
   }
   if (!addresses.reserveTracker) {
-    addresses.reserveTracker = process.env.CONTRACT_RESERVE_TRACKER || '';
+    addresses.reserveTracker = process.env.CONTRACT_RESERVE_TRACKER || "";
   }
   if (!addresses.minting) {
-    addresses.minting = process.env.CONTRACT_MINTING || '';
+    addresses.minting = process.env.CONTRACT_MINTING || "";
   }
   if (!addresses.burning) {
-    addresses.burning = process.env.CONTRACT_BURNING || '';
+    addresses.burning = process.env.CONTRACT_BURNING || "";
   }
   if (!addresses.savingsVault) {
-    addresses.savingsVault = process.env.CONTRACT_SAVINGS_VAULT || '';
+    addresses.savingsVault = process.env.CONTRACT_SAVINGS_VAULT || "";
   }
   if (!addresses.lendingPool) {
-    addresses.lendingPool = process.env.CONTRACT_LENDING_POOL || '';
+    addresses.lendingPool = process.env.CONTRACT_LENDING_POOL || "";
   }
   if (!addresses.escrow) {
-    addresses.escrow = process.env.CONTRACT_ESCROW || '';
+    addresses.escrow = process.env.CONTRACT_ESCROW || "";
   }
 
   return addresses;
@@ -67,14 +69,14 @@ export const validateContractAddresses = (): void => {
   const addresses = contractAddresses;
   const missing: string[] = [];
 
-  if (!addresses.oracle) missing.push('oracle');
-  if (!addresses.reserveTracker) missing.push('reserveTracker');
-  if (!addresses.minting) missing.push('minting');
-  if (!addresses.burning) missing.push('burning');
+  if (!addresses.oracle) missing.push("oracle");
+  if (!addresses.reserveTracker) missing.push("reserveTracker");
+  if (!addresses.minting) missing.push("minting");
+  if (!addresses.burning) missing.push("burning");
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing contract addresses: ${missing.join(', ')}. Please set the CONTRACT_* environment variables.`
+      `Missing contract addresses: ${missing.join(", ")}. Please set the CONTRACT_* environment variables.`,
     );
   }
 };

@@ -1,12 +1,12 @@
-import { Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { Request } from 'express';
-import { unlockApp } from '../services/recovery/recoveryService';
-import { AppError } from '../middleware/errorHandler';
+import { Response, NextFunction } from "express";
+import { z } from "zod";
+import { Request } from "express";
+import { unlockApp } from "../services/recovery/recoveryService";
+import { AppError } from "../middleware/errorHandler";
 
 const unlockAppSchema = z.object({
-  identifier: z.string().min(1, 'identifier is required'), // email or E.164 phone
-  passcode: z.string().min(1, 'passcode is required'),
+  identifier: z.string().min(1, "identifier is required"), // email or E.164 phone
+  passcode: z.string().min(1, "passcode is required"),
 });
 
 /**
@@ -17,7 +17,7 @@ const unlockAppSchema = z.object({
 export async function postUnlock(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     const body = unlockAppSchema.parse(req.body);
@@ -31,13 +31,16 @@ export async function postUnlock(
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      const msg = e.errors.map((x) => x.message).join('; ');
+      const msg = e.errors.map((x) => x.message).join("; ");
       return next(new AppError(msg, 400));
     }
     if (e instanceof Error) {
-      if (e.message === 'User not found or recovery not enabled') return next(new AppError(e.message, 404));
-      if (e.message === 'Invalid passcode') return next(new AppError(e.message, 401));
-      if (e.message.includes('identifier')) return next(new AppError(e.message, 400));
+      if (e.message === "User not found or recovery not enabled")
+        return next(new AppError(e.message, 404));
+      if (e.message === "Invalid passcode")
+        return next(new AppError(e.message, 401));
+      if (e.message.includes("identifier"))
+        return next(new AppError(e.message, 400));
     }
     next(e);
   }

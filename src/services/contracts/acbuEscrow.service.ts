@@ -1,5 +1,5 @@
-import { contractClient, ContractClient } from '../stellar/contractClient';
-import { stellarClient } from '../stellar/client';
+import { contractClient, ContractClient } from "../stellar/contractClient";
+import { stellarClient } from "../stellar/client";
 
 export interface CreateEscrowParams {
   payer: string; // Stellar address
@@ -24,7 +24,7 @@ export class EscrowService {
 
   async create(params: CreateEscrowParams): Promise<string> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
-    if (!sourceAccount) throw new Error('No source account available');
+    if (!sourceAccount) throw new Error("No source account available");
 
     const args = [
       ContractClient.toScVal(params.payer),
@@ -34,7 +34,7 @@ export class EscrowService {
     ];
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
-      functionName: 'create',
+      functionName: "create",
       args,
       sourceAccount,
     });
@@ -43,11 +43,11 @@ export class EscrowService {
 
   async release(escrowId: number): Promise<string> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
-    if (!sourceAccount) throw new Error('No source account available');
+    if (!sourceAccount) throw new Error("No source account available");
 
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
-      functionName: 'release',
+      functionName: "release",
       args: [ContractClient.toScVal(escrowId)],
       sourceAccount,
     });
@@ -56,12 +56,15 @@ export class EscrowService {
 
   async refund(params: RefundEscrowParams): Promise<string> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
-    if (!sourceAccount) throw new Error('No source account available');
+    if (!sourceAccount) throw new Error("No source account available");
 
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
-      functionName: 'refund',
-      args: [ContractClient.toScVal(params.escrowId), ContractClient.toScVal(params.payer)],
+      functionName: "refund",
+      args: [
+        ContractClient.toScVal(params.escrowId),
+        ContractClient.toScVal(params.payer),
+      ],
       sourceAccount,
     });
     return result.transactionHash;
@@ -70,8 +73,8 @@ export class EscrowService {
   async isPaused(): Promise<boolean> {
     const result = await this.contractClient.readContract(
       this.contractId,
-      'is_paused',
-      []
+      "is_paused",
+      [],
     );
     return ContractClient.fromScVal(result) as boolean;
   }

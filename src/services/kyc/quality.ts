@@ -1,9 +1,9 @@
 /**
  * Quality control: accuracy scoring, suspension/removal of validators.
  */
-import { prisma } from '../../config/database';
-import { config } from '../../config/env';
-import { logger } from '../../config/logger';
+import { prisma } from "../../config/database";
+import { config } from "../../config/env";
+import { logger } from "../../config/logger";
 
 const ACCURACY_THRESHOLD = config.kyc.accuracyThresholdForRemoval;
 
@@ -12,7 +12,7 @@ const ACCURACY_THRESHOLD = config.kyc.accuracyThresholdForRemoval;
  */
 export async function recordValidatorAccuracy(
   validatorId: string,
-  correct: boolean
+  correct: boolean,
 ): Promise<void> {
   const v = await prisma.kycValidator.findUnique({
     where: { id: validatorId },
@@ -27,11 +27,16 @@ export async function recordValidatorAccuracy(
     data: {
       completedCount: n,
       accuracyScore: newScore,
-      ...(newScore < ACCURACY_THRESHOLD ? { status: 'suspended' as const } : {}),
+      ...(newScore < ACCURACY_THRESHOLD
+        ? { status: "suspended" as const }
+        : {}),
     },
   });
   if (newScore < ACCURACY_THRESHOLD) {
-    logger.warn('Validator suspended for low accuracy', { validatorId, newScore });
+    logger.warn("Validator suspended for low accuracy", {
+      validatorId,
+      newScore,
+    });
   }
 }
 
@@ -40,11 +45,11 @@ export async function recordValidatorAccuracy(
  */
 export async function setValidatorStatus(
   validatorId: string,
-  status: 'active' | 'suspended' | 'removed'
+  status: "active" | "suspended" | "removed",
 ): Promise<void> {
   await prisma.kycValidator.update({
     where: { id: validatorId },
     data: { status },
   });
-  logger.info('Validator status updated', { validatorId, status });
+  logger.info("Validator status updated", { validatorId, status });
 }

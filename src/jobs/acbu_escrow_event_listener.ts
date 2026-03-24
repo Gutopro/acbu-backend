@@ -1,17 +1,24 @@
 /**
  * Listens for events on acbu_escrow contract and enqueues ACBU_ESCROW_EVENTS.
  */
-import { eventListener, ContractEvent } from '../services/stellar/eventListener';
-import { contractAddresses } from '../config/contracts';
-import { connectRabbitMQ, QUEUES } from '../config/rabbitmq';
-import { logger } from '../config/logger';
+import {
+  eventListener,
+  ContractEvent,
+} from "../services/stellar/eventListener";
+import { contractAddresses } from "../config/contracts";
+import { connectRabbitMQ, QUEUES } from "../config/rabbitmq";
+import { logger } from "../config/logger";
 
-const ESCROW_EFFECT_TYPES = ['contract_credited', 'contract_debited', 'contract_effect'];
+const ESCROW_EFFECT_TYPES = [
+  "contract_credited",
+  "contract_debited",
+  "contract_effect",
+];
 
 export async function startEscrowEventListener(): Promise<void> {
   const contractId = contractAddresses.escrow;
   if (!contractId) {
-    logger.info('Escrow event listener skipped: no CONTRACT_ESCROW configured');
+    logger.info("Escrow event listener skipped: no CONTRACT_ESCROW configured");
     return;
   }
 
@@ -28,22 +35,25 @@ export async function startEscrowEventListener(): Promise<void> {
             data: event.data,
             ledger: event.ledger,
             timestamp: event.timestamp,
-          })
+          }),
         ),
-        { persistent: true }
+        { persistent: true },
       );
-      logger.debug('Escrow event enqueued', { type: event.type, ledger: event.ledger });
+      logger.debug("Escrow event enqueued", {
+        type: event.type,
+        ledger: event.ledger,
+      });
     } catch (e) {
-      logger.error('Escrow event enqueue failed', { error: e });
+      logger.error("Escrow event enqueue failed", { error: e });
     }
   };
 
   eventListener.listenToContractEvents(
     contractId,
     ESCROW_EFFECT_TYPES,
-    handler
+    handler,
   );
-  logger.info('Escrow event listener registered', {
+  logger.info("Escrow event listener registered", {
     contractId,
     effectTypes: ESCROW_EFFECT_TYPES,
   });

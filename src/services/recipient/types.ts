@@ -14,7 +14,7 @@ export interface ResolveResult {
 }
 
 /** Normalized form of a recipient query (q) for lookup. */
-export type RecipientQueryKind = 'username' | 'phone' | 'email';
+export type RecipientQueryKind = "username" | "phone" | "email";
 
 export interface RecipientQuery {
   kind: RecipientQueryKind;

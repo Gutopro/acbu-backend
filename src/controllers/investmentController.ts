@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "../config/database";
 import { AuthRequest } from "../middleware/auth";
 import { Decimal } from "@prisma/client/runtime/library";
+import { InvestmentWithdrawalRequest } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler";
 import {
   isBusinessWithdrawalAllowedDate,
@@ -121,7 +122,7 @@ export async function getInvestmentWithdrawRequests(
       take: 50,
     });
     res.status(200).json({
-      requests: list.map((r: any) => ({
+      requests: list.map((r: InvestmentWithdrawalRequest) => ({
         id: r.id,
         amount_acbu: r.amountAcbu.toString(),
         status: r.status,

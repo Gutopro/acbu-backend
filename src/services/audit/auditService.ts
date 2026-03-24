@@ -1,8 +1,8 @@
 /**
  * Audit logging for sensitive actions. Writes to AuditTrail for compliance and debugging.
  */
-import { prisma } from '../../config/database';
-import { logger } from '../../config/logger';
+import { prisma } from "../../config/database";
+import { logger } from "../../config/logger";
 
 export interface AuditEntry {
   eventType: string;
@@ -28,6 +28,6 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
       },
     });
   } catch (e) {
-    logger.error('Audit log failed', { entry: entry.eventType, error: e });
+    logger.error("Audit log failed", { entry: entry.eventType, error: e });
   }
 }

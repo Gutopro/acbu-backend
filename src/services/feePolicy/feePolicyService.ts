@@ -2,11 +2,11 @@
  * Fee policy: dynamic fees based on reserve levels (and optional demand).
  * Spread: buy/sell spread for rates/quote (0.2–0.3%).
  */
-import { config } from '../../config/env';
-import { reserveTracker, ReserveTracker } from '../reserve/ReserveTracker';
+import { config } from "../../config/env";
+import { reserveTracker, ReserveTracker } from "../reserve/ReserveTracker";
 
 /** Default spread in basis points (0.25% = 25 bps). */
-const DEFAULT_SPREAD_BPS = Number(process.env.SPREAD_BPS || '25');
+const DEFAULT_SPREAD_BPS = Number(process.env.SPREAD_BPS || "25");
 
 /** Base mint fee BPS (0.3% = 30). */
 const BASE_MINT_FEE_BPS = 30;
@@ -29,7 +29,9 @@ export function getSpreadBps(): number {
  * Get fee in basis points for mint. Can be extended with reserve/demand logic.
  */
 export async function getMintFeeBps(_currency?: string): Promise<number> {
-  const paused = await reserveTracker.calculateReserveRatio(ReserveTracker.SEGMENT_TRANSACTIONS);
+  const paused = await reserveTracker.calculateReserveRatio(
+    ReserveTracker.SEGMENT_TRANSACTIONS,
+  );
   if (paused < config.reserve.minRatio) {
     return Math.min(100, BASE_MINT_FEE_BPS + 20); // slightly higher when ratio low
   }
@@ -41,7 +43,9 @@ export async function getMintFeeBps(_currency?: string): Promise<number> {
  * if currency reserve below target → higher fee; above target → lower fee.
  */
 export async function getBurnFeeBps(currency: string): Promise<number> {
-  const status = await reserveTracker.getReserveStatus(ReserveTracker.SEGMENT_TRANSACTIONS);
+  const status = await reserveTracker.getReserveStatus(
+    ReserveTracker.SEGMENT_TRANSACTIONS,
+  );
   const curr = status.currencies.find((c) => c.currency === currency);
   if (!curr) return BASE_BURN_FEE_BPS;
   const targetWeight = curr.targetWeight;
@@ -57,7 +61,10 @@ export async function getBurnFeeBps(currency: string): Promise<number> {
  * Apply spread to a mid rate: buy rate (user buys ACBU) and sell rate (user sells ACBU).
  * buyRate = mid * (1 - spread/2), sellRate = mid * (1 + spread/2).
  */
-export function applySpread(midRate: number): { buyRate: number; sellRate: number } {
+export function applySpread(midRate: number): {
+  buyRate: number;
+  sellRate: number;
+} {
   const spread = DEFAULT_SPREAD_BPS / 10000;
   return {
     buyRate: midRate * (1 - spread / 2),
