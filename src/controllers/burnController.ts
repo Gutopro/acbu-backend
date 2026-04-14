@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "../config/database";
 import { getContractAddresses } from "../config/contracts";
 import { acbuBurningService } from "../services/contracts";
+import { stellarClient } from "../services/stellar/client";
 import { AuthRequest } from "../middleware/auth";
 import { Decimal } from "@prisma/client/runtime/library";
 import { logAudit } from "../services/audit";
@@ -107,14 +108,14 @@ export async function burnAcbu(
     const addresses = getContractAddresses();
     if (addresses.burning) {
       try {
-        const result = await acbuBurningService.burnForCurrency({
+        const sourceAccount = stellarClient.getKeypair()?.publicKey();
+        if (!sourceAccount) throw new Error("No source account available");
+
+        const result = await acbuBurningService.redeemSingle({
+          user: sourceAccount,
+          recipient: sourceAccount, // S-tokens go to backend's wallet for off-ramp processing
           acbuAmount: acbuAmount7,
           currency,
-          recipientAccount: {
-            accountNumber: recipient_account.account_number,
-            bankCode: recipient_account.bank_code,
-            accountName: recipient_account.account_name,
-          },
         });
         const localNum = Number(result.localAmount) / 100; // contract may use 2 decimals for fiat
         await prisma.transaction.update({

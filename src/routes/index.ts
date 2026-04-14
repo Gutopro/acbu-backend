@@ -2,7 +2,6 @@ import { Router } from "express";
 import { config } from "../config/env";
 import { deepHealthCheck } from "../controllers/healthController";
 import reserveRoutes from "./reserveRoutes";
-import kycRoutes from "./kycRoutes";
 import recipientRoutes from "./recipientRoutes";
 import transferRoutes from "./transferRoutes";
 import userRoutes from "./userRoutes";
@@ -49,7 +48,6 @@ router.get("/health/metrics", deepHealthCheck);
 // API routes
 router.use("/auth", authRoutes);
 router.use("/reserves", reserveRoutes);
-router.use("/kyc", kycRoutes);
 router.use("/recipient", recipientRoutes);
 router.use("/transfers", transferRoutes);
 router.use("/users", userRoutes);

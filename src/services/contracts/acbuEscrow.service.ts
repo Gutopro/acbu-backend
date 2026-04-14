@@ -41,14 +41,14 @@ export class EscrowService {
     return result.transactionHash;
   }
 
-  async release(escrowId: number): Promise<string> {
+  async release(escrowId: number, payer: string): Promise<string> {
     const sourceAccount = stellarClient.getKeypair()?.publicKey();
     if (!sourceAccount) throw new Error("No source account available");
 
     const result = await this.contractClient.invokeContract({
       contractId: this.contractId,
       functionName: "release",
-      args: [ContractClient.toScVal(escrowId)],
+      args: [ContractClient.toScVal(escrowId), ContractClient.toScVal(payer)],
       sourceAccount,
     });
     return result.transactionHash;

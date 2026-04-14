@@ -59,12 +59,6 @@ export async function postTransfers(
     if (e instanceof Error && e.message === "Cannot transfer to yourself") {
       return next(new AppError(e.message, 400));
     }
-    if (
-      e instanceof Error &&
-      e.message.includes("KYC required to make payments")
-    ) {
-      return next(new AppError(e.message, 403));
-    }
     next(e);
   }
 }

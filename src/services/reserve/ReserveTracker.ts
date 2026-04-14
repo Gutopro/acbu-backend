@@ -103,7 +103,11 @@ export class ReserveTracker {
           const contractAddresses = getContractAddresses();
           if (contractAddresses.reserveTracker) {
             try {
+              const sourceAccount = stellarClient.getKeypair()?.publicKey();
+              if (!sourceAccount) throw new Error("No source account available");
+
               const txHash = await acbuReserveTrackerService.updateReserve({
+                updater: sourceAccount,
                 currency,
                 amount: toReserveUnits(balance),
                 valueUsd: toReserveUnits(reserveValueUsd),

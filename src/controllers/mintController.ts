@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "../config/database";
 import { getContractAddresses } from "../config/contracts";
 import { acbuMintingService } from "../services/contracts";
+import { stellarClient } from "../services/stellar/client";
 import { AuthRequest } from "../middleware/auth";
 import { Decimal } from "@prisma/client/runtime/library";
 import { logAudit } from "../services/audit";
@@ -154,7 +155,11 @@ export async function mintFromUsdcInternal(
   });
   const addresses = getContractAddresses();
   if (addresses.minting) {
+    const sourceAccount = stellarClient.getKeypair()?.publicKey();
+    if (!sourceAccount) throw new Error("No source account available");
+
     const result = await acbuMintingService.mintFromUsdc({
+      user: sourceAccount,
       usdcAmount: usdcAmount7,
       recipient: walletAddress,
     });

@@ -11,6 +11,19 @@ export interface WithdrawParams {
   amount: string;
 }
 
+export interface BorrowParams {
+  borrower: string;
+  amount: string;
+  collateralAmount: string;
+  loanId: number;
+}
+
+export interface RepayParams {
+  borrower: string;
+  amount: string;
+  loanId: number;
+}
+
 export class LendingPoolService {
   private contractId: string;
   private contractClient: ContractClient;
@@ -68,6 +81,43 @@ export class LendingPoolService {
     );
     const balance = ContractClient.fromScVal(result);
     return balance.toString();
+  }
+
+  async borrow(params: BorrowParams): Promise<string> {
+    const sourceAccount = stellarClient.getKeypair()?.publicKey();
+    if (!sourceAccount) throw new Error("No source account available");
+
+    const args = [
+      ContractClient.toScVal(params.borrower),
+      ContractClient.toScVal(BigInt(params.amount)),
+      ContractClient.toScVal(BigInt(params.collateralAmount)),
+      ContractClient.toScVal(params.loanId),
+    ];
+    const result = await this.contractClient.invokeContract({
+      contractId: this.contractId,
+      functionName: "borrow",
+      args,
+      sourceAccount,
+    });
+    return result.transactionHash;
+  }
+
+  async repay(params: RepayParams): Promise<string> {
+    const sourceAccount = stellarClient.getKeypair()?.publicKey();
+    if (!sourceAccount) throw new Error("No source account available");
+
+    const args = [
+      ContractClient.toScVal(params.borrower),
+      ContractClient.toScVal(BigInt(params.amount)),
+      ContractClient.toScVal(params.loanId),
+    ];
+    const result = await this.contractClient.invokeContract({
+      contractId: this.contractId,
+      functionName: "repay",
+      args,
+      sourceAccount,
+    });
+    return result.transactionHash;
   }
 
   async isPaused(): Promise<boolean> {

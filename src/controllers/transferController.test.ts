@@ -172,26 +172,6 @@ describe("transferController", () => {
       });
     });
 
-    it("returns 403 when sender KYC is not verified", async () => {
-      (createTransfer as jest.Mock).mockRejectedValue(
-        new Error(
-          "KYC required to make payments. Complete verification first.",
-        ),
-      );
-      const next = makeNext();
-      await postTransfers(
-        {
-          body: { to: "@bob", amount_acbu: "10" },
-          apiKey: { userId: "u1" },
-        } as unknown as AuthRequest,
-        makeRes(),
-        next,
-      );
-      expect((next as jest.Mock).mock.calls[0][0]).toMatchObject({
-        statusCode: 403,
-      });
-    });
-
     it("returns 400 on self-transfer attempt", async () => {
       (createTransfer as jest.Mock).mockRejectedValue(
         new Error("Cannot transfer to yourself"),

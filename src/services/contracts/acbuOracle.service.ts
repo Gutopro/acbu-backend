@@ -3,6 +3,7 @@ import { stellarClient } from "../stellar/client";
 import { logger } from "../../config/logger";
 
 export interface UpdateRateParams {
+  validator: string; // The validator address
   currency: string; // Currency code (NGN, KES, RWF)
   rate: string; // Rate in 7 decimals
   sources: string[]; // Source rates for median calculation
@@ -30,11 +31,12 @@ export class OracleService {
         throw new Error("No source account available");
       }
 
-      // Build function arguments
+      // Build function arguments: [validator, currency, rate, sources, timestamp]
       const args = [
+        ContractClient.toScVal(params.validator),
         ContractClient.toScVal(params.currency),
-        ContractClient.toScVal(params.rate),
-        ContractClient.toScVal(params.sources),
+        ContractClient.toScVal(BigInt(params.rate)),
+        ContractClient.toScVal(params.sources.map((s) => BigInt(s))),
         ContractClient.toScVal(params.timestamp),
       ];
 

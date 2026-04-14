@@ -98,10 +98,6 @@ export const QUEUES = {
   OTP_SEND_DLQ: "otp_send_dlq",
   WEBHOOKS: "webhooks",
   WEBHOOKS_DLQ: "webhooks_dlq", // failed webhook deliveries for retry
-  KYC_PROCESSING: "kyc_processing",
-  KYC_PROCESSING_DLQ: "kyc_processing_dlq",
-  WALLET_ACTIVATION: "wallet_activation", // send XLM to user wallet when KYC fee paid
-  WALLET_ACTIVATION_DLQ: "wallet_activation_dlq",
   ACBU_SAVINGS_VAULT_EVENTS: "acbu_savings_vault_events",
   ACBU_SAVINGS_VAULT_EVENTS_DLQ: "acbu_savings_vault_events_dlq",
   ACBU_LENDING_POOL_EVENTS: "acbu_lending_pool_events",

@@ -86,16 +86,29 @@ export class StellarClient {
   }
 
   /**
-   * Get account information
+   * Get account information with retries
    */
-  async getAccount(accountId: string) {
-    try {
-      const account = await this.server.loadAccount(accountId);
-      return account;
-    } catch (error) {
-      logger.error("Failed to load account", { accountId, error });
-      throw error;
+  async getAccount(accountId: string, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const account = await this.server.loadAccount(accountId);
+        return account;
+      } catch (error: any) {
+        if (i === retries - 1) {
+          logger.error("Failed to load account after retries", {
+            accountId,
+            error,
+          });
+          throw error;
+        }
+        logger.warn(`Failed to load account (attempt ${i + 1}/${retries}). Retrying...`, {
+          accountId,
+          error: error.message,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
+      }
     }
+    throw new Error("Failed to load account");
   }
 
   /**

@@ -90,16 +90,6 @@ async function startServer() {
     }
 
     if (rabbitReady) {
-      // Start KYC processing consumer
-      const { startKycProcessingConsumer } =
-        await import("./jobs/kycProcessingJob");
-      await startKycProcessingConsumer();
-
-      // Start wallet activation consumer (send XLM when KYC fee paid)
-      const { startWalletActivationConsumer } =
-        await import("./jobs/walletActivationJob");
-      await startWalletActivationConsumer();
-
       // Start notification consumer (OTP_SEND + NOTIFICATIONS → email/SMS)
       const { startNotificationConsumer } =
         await import("./jobs/notificationConsumer");

@@ -3,6 +3,7 @@ import { stellarClient } from "../stellar/client";
 import { logger } from "../../config/logger";
 
 export interface UpdateReserveParams {
+  updater: string; // The authorized address performing the update
   currency: string; // Currency code (NGN, KES, RWF)
   amount: string; // Reserve amount in native currency (7 decimals)
   valueUsd: string; // Reserve value in USD (7 decimals)
@@ -36,13 +37,12 @@ export class ReserveTrackerService {
         throw new Error("No source account available");
       }
 
-      // Build function arguments (contract expects currency, amount: i128, value_usd: i128)
-      const amountI128 = Number(params.amount);
-      const valueUsdI128 = Number(params.valueUsd);
+      // Build function arguments: [updater, currency, amount, value_usd]
       const args = [
+        ContractClient.toScVal(params.updater),
         ContractClient.toScVal(params.currency),
-        ContractClient.toScVal(amountI128),
-        ContractClient.toScVal(valueUsdI128),
+        ContractClient.toScVal(BigInt(params.amount)),
+        ContractClient.toScVal(BigInt(params.valueUsd)),
       ];
 
       // Invoke contract
@@ -92,12 +92,12 @@ export class ReserveTrackerService {
   /**
    * Verify reserves meet overcollateralization requirements
    */
-  async verifyReserves(): Promise<boolean> {
+  async verifyReserves(totalAcbuSupply: string): Promise<boolean> {
     try {
       const result = await this.contractClient.readContract(
         this.contractId,
         "verify_reserves",
-        [],
+        [ContractClient.toScVal(BigInt(totalAcbuSupply))],
       );
 
       return ContractClient.fromScVal(result) as boolean;

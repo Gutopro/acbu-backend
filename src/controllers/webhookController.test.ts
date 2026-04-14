@@ -36,7 +36,11 @@ import { prisma } from "../config/database";
 type RawRequest = Request & { rawBody?: Buffer };
 
 const makeRes = () => {
-  const res = { status: jest.fn(), json: jest.fn() } as unknown as Response;
+  const res = {
+    status: jest.fn(),
+    json: jest.fn(),
+    setHeader: jest.fn(),
+  } as unknown as Response;
   (res.status as jest.Mock).mockReturnValue(res);
   (res.json as jest.Mock).mockReturnValue(res);
   return res;
@@ -189,7 +193,12 @@ describe("webhookController", () => {
         }),
       );
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ status: "ok" });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "ok",
+          deprecated: true,
+        }),
+      );
     });
 
     it("uses 'unknown' eventType when event field is absent", async () => {
@@ -242,7 +251,12 @@ describe("webhookController", () => {
         }),
       );
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ status: "ok" });
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "ok",
+          deprecated: true,
+        }),
+      );
     });
 
     it("falls back to payload.type when event field is absent", async () => {

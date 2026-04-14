@@ -18,16 +18,6 @@ import { logger } from "../../config/logger";
 import { stellarClient } from "./client";
 import { getBaseFee } from "./feeManager";
 
-/** Circle USDC issuer addresses (well-known, override via env if needed). */
-const USDC_ISSUERS: Record<string, string> = {
-  testnet:
-    process.env.USDC_ISSUER_TESTNET ??
-    "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
-  mainnet:
-    process.env.USDC_ISSUER_MAINNET ??
-    "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-};
-
 /** Slippage tolerance in basis points. Default 50 = 0.5%. */
 const SLIPPAGE_BPS = parseInt(process.env.USDC_XLM_SLIPPAGE_BPS ?? "50", 10);
 
@@ -57,7 +47,14 @@ export interface SwapResult {
  */
 export async function swapUsdcToXlm(usdcAmount: number): Promise<SwapResult> {
   const network = config.stellar.network;
-  const usdcIssuer = USDC_ISSUERS[network];
+  const usdcIssuer =
+    network === "mainnet"
+      ? config.stellar.usdcIssuerMainnet
+      : config.stellar.usdcIssuerTestnet;
+  const usdcAssetCode =
+    network === "mainnet"
+      ? config.stellar.usdcAssetCodeMainnet
+      : config.stellar.usdcAssetCodeTestnet;
   if (!usdcIssuer) {
     throw new Error(
       `No USDC issuer configured for Stellar network "${network}". ` +
@@ -73,7 +70,7 @@ export async function swapUsdcToXlm(usdcAmount: number): Promise<SwapResult> {
   }
 
   const server = stellarClient.getServer();
-  const usdcAsset = new Asset("USDC", usdcIssuer);
+  const usdcAsset = new Asset(usdcAssetCode, usdcIssuer);
   const xlmAsset = Asset.native();
   const sendAmountStr = usdcAmount.toFixed(7);
   const backendPublicKey = keypair.publicKey();
@@ -90,7 +87,7 @@ export async function swapUsdcToXlm(usdcAmount: number): Promise<SwapResult> {
 
   if (!bestPath) {
     throw new Error(
-      `Stellar DEX has no USDC→XLM path for ${usdcAmount} USDC. ` +
+      `Stellar DEX has no ${usdcAssetCode}→XLM path for ${usdcAmount} ${usdcAssetCode}. ` +
         `The liquidity pool may be empty or the amount is too small.`,
     );
   }

@@ -11,6 +11,7 @@ import { getContractAddresses } from "../../config/contracts";
 import { logger } from "../../config/logger";
 import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { stellarClient } from "../stellar/client";
 import { fetchCentralBankRateUsd } from "./centralBankClient";
 import { fetchForexRateUsd } from "./forexClient";
 
@@ -150,11 +151,15 @@ export async function fetchAndStoreRates(): Promise<void> {
       const addresses = getContractAddresses();
       if (addresses.oracle && config.oracle) {
         try {
+          const sourceAccount = stellarClient.getKeypair()?.publicKey();
+          if (!sourceAccount) throw new Error("No source account available");
+
           const rate7 = Math.round(composite * ORACLE_RATE_DECIMALS).toString();
           const sourcesForContract = [centralBankRate, fintechRate, forexRate]
             .filter((r): r is number => r != null && r > 0)
             .map(String);
           await acbuOracleService.updateRate({
+            validator: sourceAccount,
             currency,
             rate: rate7,
             sources: sourcesForContract,

@@ -143,24 +143,12 @@ export const config = {
     usdcIssuerMainnet:
       process.env.USDC_ISSUER_MAINNET ??
       "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+    /** Stellar asset code for the USDC-like swap asset on testnet (4–12 alphanumeric). Default `USDC`. */
+    usdcAssetCodeTestnet: process.env.USDC_ASSET_CODE_TESTNET || "USDC",
+    /** Stellar asset code for the USDC-like swap asset on mainnet. Default `USDC`. */
+    usdcAssetCodeMainnet: process.env.USDC_ASSET_CODE_MAINNET || "USDC",
     /** Slippage tolerance for the USDC→XLM DEX swap in basis points. Default 50 = 0.5%. */
     usdcXlmSlippageBps: parseInt(process.env.USDC_XLM_SLIPPAGE_BPS ?? "50", 10),
-  },
-
-  // Pi Network / Bridge
-  pi: {
-    /** Enable Pi bridge/chain for wallet activation */
-    enabled: process.env.PI_BRIDGE_ENABLED === "true" || false,
-    /** Secret key for Pi bridge transactions */
-    secretKey: process.env.PI_SECRET_KEY || "",
-    /** Pi bridge/chain API endpoint */
-    apiUrl: process.env.PI_API_URL || "https://api.pi.network.com",
-    /** Minimum Pi sent to user wallet for activation. Default 0.1 */
-    minBalancePi: parseFloat(
-      process.env.WALLET_ACTIVATION_PI || process.env.PI_MIN_BALANCE || "0.1",
-    ),
-    /** Network: testnet or mainnet */
-    network: (process.env.PI_NETWORK || "testnet") as "testnet" | "mainnet",
   },
 
   // Oracle (40/40/20: central bank, fintech, forex)
@@ -202,40 +190,6 @@ export const config = {
     minRatio: parseFloat(process.env.RESERVE_MIN_RATIO || "1.02"),
     targetRatio: parseFloat(process.env.RESERVE_TARGET_RATIO || "1.05"),
     alertThreshold: parseFloat(process.env.RESERVE_ALERT_THRESHOLD || "1.02"),
-  },
-
-  // KYC (Pi-style two-layer)
-  kyc: {
-    feeAcbu: parseFloat(process.env.KYC_FEE_ACBU || ""),
-    feeCollectorAddress: process.env.KYC_FEE_COLLECTOR_ADDRESS || "",
-    machineProvider: (process.env.KYC_MACHINE_PROVIDER || "none") as
-      | "openai"
-      | "textract"
-      | "none",
-    machineConfidenceThreshold: parseFloat(
-      process.env.KYC_MACHINE_CONFIDENCE_THRESHOLD || "0.95",
-    ),
-    objectStoreBucket: process.env.KYC_OBJECT_STORE_BUCKET || "kyc-documents",
-    objectStoreRegion: process.env.KYC_OBJECT_STORE_REGION || "us-east-1",
-    objectStoreEndpoint: process.env.KYC_OBJECT_STORE_ENDPOINT || "",
-    minValidatorsPerApplication: parseInt(
-      process.env.KYC_MIN_VALIDATORS_PER_APPLICATION || "2",
-      10,
-    ),
-    consensusRule: (process.env.KYC_CONSENSUS_RULE || "all_approve") as
-      | "all_approve"
-      | "majority_approve",
-    rewardSharePerValidator: parseFloat(
-      process.env.KYC_REWARD_SHARE_PER_VALIDATOR || "0.33",
-    ),
-    accuracyThresholdForRemoval: parseFloat(
-      process.env.KYC_ACCURACY_THRESHOLD_FOR_REMOVAL || "0.7",
-    ),
-    openaiApiKey: process.env.OPENAI_API_KEY || "",
-    awsRegion:
-      process.env.AWS_REGION ||
-      process.env.KYC_OBJECT_STORE_REGION ||
-      "us-east-1",
   },
 
   // Notifications (email / SMS)

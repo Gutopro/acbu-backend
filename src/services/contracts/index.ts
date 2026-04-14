@@ -35,5 +35,7 @@ export {
   LendingPoolService,
   type DepositParams as LendingPoolDepositParams,
   type WithdrawParams as LendingPoolWithdrawParams,
+  type BorrowParams as LendingPoolBorrowParams,
+  type RepayParams as LendingPoolRepayParams,
 } from "./acbuLendingPool.service";
 export * from "./acbuEscrow.service";

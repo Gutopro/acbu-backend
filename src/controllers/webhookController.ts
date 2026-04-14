@@ -1,7 +1,17 @@
 /**
  * POST /v1/webhooks/flutterwave - Receive Flutterwave webhooks (deposits, etc.).
  * Verifies signature (verif-hash = HMAC-SHA256 of raw body with FLUTTERWAVE_WEBHOOK_SECRET).
+ *
+ * @deprecated Afreum-first / S-token flows: fiat on-ramps are expected via Afreum (or similar)
+ * Stellar ramps); these endpoints remain for audit logging only and do not drive minting.
  */
+const DEPRECATED_FIAT_WEBHOOK_NOTE =
+  "Direct Paystack/Flutterwave deposit webhooks are deprecated in favor of Afreum S-token and on-chain flows. Payload stored for audit only.";
+
+function setFiatWebhookDeprecationHeaders(res: Response): void {
+  res.setHeader("Deprecation", "true");
+  res.setHeader("Link", '<https://afreum.com>; rel="successor-version"');
+}
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { config } from "../config/env";
@@ -121,10 +131,11 @@ export async function handlePaystackWebhook(
     };
     const eventType = payload.event ?? "unknown";
     const data = payload.data ?? {};
-    logger.info("Paystack webhook received", {
+    logger.warn("Paystack webhook received (deprecated path)", {
       eventType,
       reference: data.reference,
       status: data.status,
+      note: DEPRECATED_FIAT_WEBHOOK_NOTE,
     });
 
     await prisma.webhook.create({
@@ -140,7 +151,12 @@ export async function handlePaystackWebhook(
       // When reference links to a pending mint, update transaction
     }
 
-    res.status(200).json({ status: "ok" });
+    setFiatWebhookDeprecationHeaders(res);
+    res.status(200).json({
+      status: "ok",
+      deprecated: true,
+      message: DEPRECATED_FIAT_WEBHOOK_NOTE,
+    });
   } catch (error) {
     next(error);
   }
@@ -148,6 +164,7 @@ export async function handlePaystackWebhook(
 
 /**
  * Handle Flutterwave webhook payload: persist and optionally create/update transaction.
+ * @deprecated See module note — audit-only; minting is driven by Stellar/S-token state.
  */
 export async function handleFlutterwaveWebhook(
   req: Request,
@@ -170,10 +187,11 @@ export async function handleFlutterwaveWebhook(
     };
     const eventType = payload.event ?? payload.type ?? "unknown";
     const data = payload.data ?? {};
-    logger.info("Flutterwave webhook received", {
+    logger.warn("Flutterwave webhook received (deprecated path)", {
       eventType,
       tx_ref: data.tx_ref,
       status: data.status,
+      note: DEPRECATED_FIAT_WEBHOOK_NOTE,
     });
 
     await prisma.webhook.create({
@@ -190,7 +208,12 @@ export async function handleFlutterwaveWebhook(
       // For now we only log and persist the webhook
     }
 
-    res.status(200).json({ status: "ok" });
+    setFiatWebhookDeprecationHeaders(res);
+    res.status(200).json({
+      status: "ok",
+      deprecated: true,
+      message: DEPRECATED_FIAT_WEBHOOK_NOTE,
+    });
   } catch (error) {
     next(error);
   }

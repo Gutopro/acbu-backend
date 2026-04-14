@@ -3,15 +3,22 @@ import { stellarClient } from "../stellar/client";
 import { logger } from "../../config/logger";
 
 export interface MintFromUsdcParams {
+  user: string; // The caller/payer address
   usdcAmount: string; // Amount in smallest unit (7 decimals)
-  recipient: string; // Stellar address
+  recipient: string; // Stellar address to receive ACBU
 }
 
-export interface MintFromFiatParams {
-  currency: string; // Currency code (NGN, KES, RWF)
-  amount: string; // Amount in smallest unit
-  recipient: string; // Stellar address
-  fintechTxId: string; // Fintech transaction ID
+export interface MintFromBasketParams {
+  user: string;
+  recipient: string;
+  acbuAmount: string;
+}
+
+export interface MintFromSingleParams {
+  user: string;
+  recipient: string;
+  currency: string;
+  sTokenAmount: string;
 }
 
 export class MintingService {
@@ -38,14 +45,11 @@ export class MintingService {
         throw new Error("No source account available");
       }
 
-      // Convert amount to i128 (7 decimals)
-      const usdcAmount = BigInt(params.usdcAmount);
-      const recipient = params.recipient;
-
-      // Build function arguments
+      // Build function arguments: [user, usdc_amount, recipient]
       const args = [
-        ContractClient.toScVal(Number(usdcAmount)),
-        ContractClient.toScVal(recipient),
+        ContractClient.toScVal(params.user),
+        ContractClient.toScVal(BigInt(params.usdcAmount)),
+        ContractClient.toScVal(params.recipient),
       ];
 
       // Invoke contract
@@ -75,32 +79,31 @@ export class MintingService {
   }
 
   /**
-   * Mint ACBU from fiat deposit
+   * Mint ACBU from basket deposit
    */
-  async mintFromFiat(params: MintFromFiatParams): Promise<{
+  async mintFromBasket(params: MintFromBasketParams): Promise<{
     transactionHash: string;
     acbuAmount: string;
   }> {
     try {
-      logger.info("Minting ACBU from fiat", params);
+      logger.info("Minting ACBU from basket", params);
 
       const sourceAccount = stellarClient.getKeypair()?.publicKey();
       if (!sourceAccount) {
         throw new Error("No source account available");
       }
 
-      // Build function arguments
+      // Build function arguments: [user, recipient, acbu_amount]
       const args = [
-        ContractClient.toScVal(params.currency),
-        ContractClient.toScVal(params.amount),
+        ContractClient.toScVal(params.user),
         ContractClient.toScVal(params.recipient),
-        ContractClient.toScVal(params.fintechTxId),
+        ContractClient.toScVal(BigInt(params.acbuAmount)),
       ];
 
       // Invoke contract
       const result = await this.contractClient.invokeContract({
         contractId: this.contractId,
-        functionName: "mint_from_fiat",
+        functionName: "mint_from_basket",
         args,
         sourceAccount,
       });
@@ -108,7 +111,7 @@ export class MintingService {
       // Parse result
       const acbuAmount = ContractClient.fromScVal(result.result);
 
-      logger.info("Fiat minting successful", {
+      logger.info("Basket minting successful", {
         transactionHash: result.transactionHash,
         acbuAmount: acbuAmount.toString(),
       });
@@ -118,7 +121,56 @@ export class MintingService {
         acbuAmount: acbuAmount.toString(),
       };
     } catch (error) {
-      logger.error("Failed to mint from fiat", { params, error });
+      logger.error("Failed to mint from basket", { params, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Mint ACBU from single S-token deposit
+   */
+  async mintFromSingle(params: MintFromSingleParams): Promise<{
+    transactionHash: string;
+    acbuAmount: string;
+  }> {
+    try {
+      logger.info("Minting ACBU from single S-token", params);
+
+      const sourceAccount = stellarClient.getKeypair()?.publicKey();
+      if (!sourceAccount) {
+        throw new Error("No source account available");
+      }
+
+      // Build function arguments: [user, recipient, currency, s_token_amount]
+      const args = [
+        ContractClient.toScVal(params.user),
+        ContractClient.toScVal(params.recipient),
+        ContractClient.toScVal(params.currency),
+        ContractClient.toScVal(BigInt(params.sTokenAmount)),
+      ];
+
+      // Invoke contract
+      const result = await this.contractClient.invokeContract({
+        contractId: this.contractId,
+        functionName: "mint_from_single",
+        args,
+        sourceAccount,
+      });
+
+      // Parse result
+      const acbuAmount = ContractClient.fromScVal(result.result);
+
+      logger.info("Single minting successful", {
+        transactionHash: result.transactionHash,
+        acbuAmount: acbuAmount.toString(),
+      });
+
+      return {
+        transactionHash: result.transactionHash,
+        acbuAmount: acbuAmount.toString(),
+      };
+    } catch (error) {
+      logger.error("Failed to mint from single", { params, error });
       throw error;
     }
   }
