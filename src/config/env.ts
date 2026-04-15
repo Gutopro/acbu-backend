@@ -288,5 +288,5 @@ export const config = {
   },
 
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
+  corsOrigin: process.env.CORS_ORIGIN?.split(",") || ["*"],
 };

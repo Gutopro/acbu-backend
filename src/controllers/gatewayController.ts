@@ -45,7 +45,9 @@ export async function postGatewayConfirm(
       throw new AppError("Escrow contract not configured", 503);
     }
     if (action === "release") {
-      const txHash = await acbuEscrowService.release(Number(escrow_id));
+      const payer = (req as AuthRequest).body?.payer;
+      if (!payer) throw new AppError("payer required for release", 400);
+      const txHash = await acbuEscrowService.release(Number(escrow_id), payer);
       res.status(200).json({ transaction_hash: txHash, action: "release" });
     } else if (action === "refund") {
       const payer = (req as AuthRequest).body?.payer;

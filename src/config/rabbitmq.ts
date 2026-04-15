@@ -79,6 +79,7 @@ export async function disconnectRabbitMQ(): Promise<void> {
 
 export function getRabbitMQChannel(): Channel {
   if (!channel) {
+    logger.warn("RabbitMQ not connected, throwing error on channel request");
     throw new Error("RabbitMQ not connected. Call connectRabbitMQ() first.");
   }
   return channel;

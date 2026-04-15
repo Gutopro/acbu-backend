@@ -30,11 +30,17 @@ function sanitizeForLog(err: Error, req: Request) {
 }
 
 export const errorHandler = (
-  err: Error | AppError,
+  err: Error | AppError | SyntaxError,
   req: Request,
   res: Response,
   _next: NextFunction,
 ): void => {
+  if (err instanceof SyntaxError && "body" in err) {
+    logger.warn("JSON Parse Error", { message: err.message, path: req.path });
+    res.status(400).json({ error: { message: "Invalid JSON payload", statusCode: 400 } });
+    return;
+  }
+
   if (err instanceof AppError) {
     logger.error("Application error", {
       message: err.message,

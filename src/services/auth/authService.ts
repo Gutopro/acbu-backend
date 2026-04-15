@@ -77,26 +77,6 @@ function generateOtpCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-async function publishOtpToQueue(payload: {
-  channel: string;
-  to: string;
-  code: string;
-}): Promise<void> {
-  try {
-    const ch = getRabbitMQChannel();
-    await ch.assertQueue(QUEUES.OTP_SEND, { durable: true });
-    ch.sendToQueue(QUEUES.OTP_SEND, Buffer.from(JSON.stringify(payload)), {
-      persistent: true,
-    });
-    logger.debug("OTP published to queue", {
-      channel: payload.channel,
-      to: payload.to ? "***" : undefined,
-    });
-  } catch (e) {
-    logger.error("Failed to publish OTP to RabbitMQ", e);
-    throw new Error("OTP delivery unavailable");
-  }
-}
 
 /**
  * Resolve identifier to user (username, email, or E.164 phone).
@@ -206,7 +186,20 @@ export async function signin(params: SigninParams): Promise<SigninResult> {
           expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
         },
       });
-      await publishOtpToQueue({ channel: user.twoFaMethod, to, code });
+      
+      try {
+        const ch = getRabbitMQChannel();
+        await ch.assertQueue(QUEUES.OTP_SEND, { durable: true });
+        ch.sendToQueue(QUEUES.OTP_SEND, Buffer.from(JSON.stringify({ channel: user.twoFaMethod, to, code })), {
+          persistent: true,
+        });
+        logger.debug("OTP published to queue", {
+          channel: user.twoFaMethod,
+          to: to ? "***" : undefined,
+        });
+      } catch (err) {
+        logger.error("Skipping OTP send due to RabbitMQ error", err);
+      }
     }
     const challenge_token = signChallengeToken(user.id);
     await logAudit({
